@@ -19,7 +19,6 @@ class MyDataset(torch.utils.data.Dataset):
         img = Image.open(self.root + "/" + fid + ".png").convert('L')
         if self.transform is not None:
             img = self.transform(img)
-
         return img, label
 
     def __len__(self):

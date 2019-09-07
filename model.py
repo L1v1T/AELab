@@ -7,11 +7,12 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from my_dataset import MyDataset
 
+from torchsummary import summary
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        '''
+        
         self.conv1 = nn.Conv2d(1, 20, 5, 1)
         self.conv2 = nn.Conv2d(20, 50, 5, 1)
         self.fc1 = nn.Linear(4*4*50, 500)
@@ -22,9 +23,10 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(200, 100)
         self.fc4 = nn.Linear(100, 50)
         self.fc5 = nn.Linear(50, 10)
+        '''
 
     def forward(self, x):
-        '''
+        
         x = F.relu(self.conv1(x))
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv2(x))
@@ -39,6 +41,7 @@ class Net(nn.Module):
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
         x = self.fc5(x)
+        '''
         
         return F.log_softmax(x, dim=1)
     
@@ -119,8 +122,17 @@ def main():
                        ])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-
     model = Net().to(device)
+    
+    '''
+    print(model.conv2.in_channels)
+    print(len(model.conv2.weight.data[0]))
+    print(len(model.conv2.weight.data[0][0]))
+    print(len(model.conv2.weight.data[0][0][0]))
+    '''
+    # summary(model, (1, 28, 28))
+    # exit(0)
+
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
