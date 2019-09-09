@@ -6,16 +6,18 @@ import torch
 import argparse
 import torch.nn.functional as F
 import attack as A
+from model import Net
 
 def my_nll(model, data, target):
     output = model(data)
     return F.nll_loss(output, target)
 
 def adv_loss(model, data, target, original_loss, attack_func, epsilon=0.33, alpha=0.5):
+    adv_data, _ = attack_func(model, data, epsilon)
     return alpha * original_loss(model, data, target) + \
-        (1 - alpha) * original_loss(model, attack_func(model, data, epsilon), target)
+        (1 - alpha) * original_loss(model, adv_data, target)
 
-def adv_training(args, model, device, train_loader, optimizer, epoch):
+def adv_train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -73,11 +75,11 @@ def main():
                        ])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = load_model("mnist_cnn.pt", device)
+    model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
+        adv_train(args, model, device, train_loader, optimizer, epoch)
         test(args, model, device, test_loader)
 
     if (args.save_model):
