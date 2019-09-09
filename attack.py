@@ -141,7 +141,7 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     model = Net().to(device)
-    model.load_state_dict(torch.load("mnist_cnn.pt"))
+    model.load_state_dict(torch.load("mnist_cnn_ad.pt"))
     model.eval()
     # image = Image.open("attack.png").convert("L")
     # #image = Image.open("look.png").convert("L")
@@ -155,20 +155,20 @@ def main():
     # trans = transforms.Compose([transforms.ToTensor()])
     
     # image = trans(image)
-    # print(len(image))
-    # print(len(image[0]))
-    # print(len(image[0][0]))
+    # # print(len(image))
+    # # print(len(image[0]))
+    # # print(len(image[0][0]))
     # #print(len(image[0][0][0]))
     # image = image.unsqueeze(0)
     # print(classifies(model, image))
-    # print(len(image))
-    # print(len(image[0]))
-    # print(len(image[0][0]))
-    # print(len(image[0][0][0]))
+    # # print(len(image))
+    # # print(len(image[0]))
+    # # print(len(image[0][0]))
+    # # print(len(image[0][0][0]))
     
     # #print("original image")
     # #print(image)
-    # new_sample = attack(model, image, epsilon = 16/255)
+    # new_sample, _ = fixed_I_FGMS(model, image, epsilon = 0.07)
     # #print("new image")
     # #print(new_sample)
     # print(classifies(model, new_sample))
@@ -216,11 +216,11 @@ def main():
     #     break
     # exit(0)
     print("Evaluating FGSM")
-    print(evaluate(model, data_loader.dataset, 1000, 0.33, FGMS))
+    print(evaluate(model, data_loader.dataset, 5000, 0.07, FGMS))
     print("Evaluating I-FGSM")
-    print(evaluate(model, data_loader.dataset, 1000, 0.07, I_FGMS))
+    print(evaluate(model, data_loader.dataset, 5000, 0.07, I_FGMS))
     print("Evaluating my I-FGSM")
-    print(evaluate(model, data_loader.dataset, 1000, 10, fixed_I_FGMS))
+    print(evaluate(model, data_loader.dataset, 5000, 10, fixed_I_FGMS))
 
 if __name__ == "__main__":
     main()

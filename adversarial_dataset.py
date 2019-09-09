@@ -1,4 +1,4 @@
-from attack import attack
+from attack import FGMS
 from model import Net
 import torch
 import os
@@ -45,7 +45,7 @@ def trans_dataset(out_folder, in_folder, model):
                 shutil.copyfile(in_folder + "/" + fname, out_folder + "/" + fname)
         for fimage in file_list:
             image = read_image(in_folder + "/" + fimage)
-            new_image = attack(model, image, epsilon = 16/255)
+            new_image = FGMS(model, image, epsilon = 16/255)
             save_image(out_folder + "/" + fimage, new_image)
             count += 1
             print(count)

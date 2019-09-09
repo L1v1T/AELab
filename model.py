@@ -77,6 +77,12 @@ def test(args, model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
+def load_model(model_file, device):
+    model = Net().to(device)
+    model.load_state_dict(torch.load(model_file))
+    model.eval()
+    return model
+
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')

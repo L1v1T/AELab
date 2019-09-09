@@ -1,10 +1,33 @@
-from adversarial_dataset import load_model, ad_test_folder, ad_train_folder
-from model import train, test
+from model import load_model, train, test
 from torchvision import datasets, transforms
 from my_dataset import MyDataset
 import torch.optim as optim
 import torch
 import argparse
+import torch.nn.functional as F
+import attack as A
+
+def my_nll(model, data, target):
+    output = model(data)
+    return F.nll_loss(output, target)
+
+def adv_loss(model, data, target, original_loss, attack_func, epsilon=0.33, alpha=0.5):
+    return alpha * original_loss(model, data, target) + \
+        (1 - alpha) * original_loss(model, attack_func(model, data, epsilon), target)
+
+def adv_training(args, model, device, train_loader, optimizer, epoch):
+    model.train()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        # output = model(data)
+        loss = adv_loss(model, data, target, my_nll, A.FGMS, 7)
+        loss.backward()
+        optimizer.step()
+        if batch_idx % args.log_interval == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(data), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
 
 def main():
     # Training settings
@@ -38,13 +61,13 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     train_loader = torch.utils.data.DataLoader(
-        MyDataset(ad_train_folder, transform=transforms.Compose([
+        MyDataset("train", transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        MyDataset(ad_test_folder, transform=transforms.Compose([
+        MyDataset("test", transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
