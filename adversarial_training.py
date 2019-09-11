@@ -54,8 +54,10 @@ def adv_train(args, model, device, train_loader, optimizer, epoch):
         # exit(0)
         # output = model(data)
         # loss = adv_loss(model, data, target, my_nll, A.fixed_I_FGMS, 7)
-        loss = adv_loss(model, data, target, my_nll, A.FGMS, 0.7)
+        loss = adv_loss(model, data, target, my_nll, A.FGMS, 0.33)
         optimizer.zero_grad()
+        # output = model(data)
+        # loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
@@ -115,6 +117,7 @@ def main():
     #     batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     model = Net().to(device)
+    # model = load_model("mnist_cnn_20.pt", device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):

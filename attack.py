@@ -85,6 +85,9 @@ def fixed_I_FGMS(model, ori_image, epsilon):
     
     return image, count
 
+def func_Z(model):
+    pass
+
 def CW_L2(model, ori_image, fn):
     pass
 
@@ -147,7 +150,7 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     model = Net().to(device)
-    model.load_state_dict(torch.load("mnist_cnn.pt"))
+    model.load_state_dict(torch.load("mnist_cnn_ad_5.pt"))
     model.eval()
     # image = Image.open("attack.png").convert("L")
     # #image = Image.open("look.png").convert("L")
@@ -222,11 +225,11 @@ def main():
     #     break
     # exit(0)
     print("Evaluating FGSM")
-    print(evaluate(model, data_loader.dataset, 5000, 0.07, FGMS))
-    print("Evaluating I-FGSM")
-    print(evaluate(model, data_loader.dataset, 5000, 0.07, I_FGMS))
-    print("Evaluating my I-FGSM")
-    print(evaluate(model, data_loader.dataset, 5000, 10, fixed_I_FGMS))
+    print(evaluate(model, data_loader.dataset, 5000, 0.33, FGMS))
+    # print("Evaluating I-FGSM")
+    # print(evaluate(model, data_loader.dataset, 5000, 0.07, I_FGMS))
+    # print("Evaluating my I-FGSM")
+    # print(evaluate(model, data_loader.dataset, 5000, 10, fixed_I_FGMS))
 
 if __name__ == "__main__":
     main()
