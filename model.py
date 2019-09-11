@@ -122,31 +122,42 @@ def main():
                        ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        MyDataset("test", transform=transforms.Compose([
+        MyDataset("ad_test", transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = Net().to(device)
+    print("Evaluating original model...")
+    model = load_model("mnist_cnn_ad.pt", device)
+    test(args, model, device, test_loader)
+    exit(0)
+    print("Evaluating adversarial model(epsilon = 0.33)...")
+    model = load_model("mnist_cnn_ad_FGSM_0.33.pt", device)
+    test(args, model, device, test_loader)
+    print("Evaluating adversarial model(epsilon = 7)...")
+    model = load_model("mnist_cnn_ad_FGSM_7.pt", device)
+    test(args, model, device, test_loader)
+
+    # model = Net().to(device)
     
-    '''
-    print(model.conv2.in_channels)
-    print(len(model.conv2.weight.data[0]))
-    print(len(model.conv2.weight.data[0][0]))
-    print(len(model.conv2.weight.data[0][0][0]))
-    '''
-    # summary(model, (1, 28, 28))
-    # exit(0)
+    # '''
+    # print(model.conv2.in_channels)
+    # print(len(model.conv2.weight.data[0]))
+    # print(len(model.conv2.weight.data[0][0]))
+    # print(len(model.conv2.weight.data[0][0][0]))
+    # '''
+    # # summary(model, (1, 28, 28))
+    # # exit(0)
 
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
-    for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
-        test(args, model, device, test_loader)
+    # for epoch in range(1, args.epochs + 1):
+    #     train(args, model, device, train_loader, optimizer, epoch)
+    #     test(args, model, device, test_loader)
 
-    if (args.save_model):
-        torch.save(model.state_dict(),"mnist_cnn.pt")
+    # if (args.save_model):
+    #     torch.save(model.state_dict(),"mnist_cnn.pt")
         
 if __name__ == '__main__':
     main()

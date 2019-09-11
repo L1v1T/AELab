@@ -13,17 +13,49 @@ def my_nll(model, data, target):
     return F.nll_loss(output, target)
 
 def adv_loss(model, data, target, original_loss, attack_func, epsilon=0.33, alpha=0.5):
-    adv_data, _ = attack_func(model, data, epsilon)
+
+    adv_data = []
+    adv_targets = []
+    ori_data = data.clone().detach()
+    # print(torch.equal(ori_data, data))
+    for image in data:
+        pass
+        image = image.unsqueeze(0)
+        adv_image, adv_target = attack_func(model, image, epsilon)
+        adv_image = adv_image.squeeze(0)
+        adv_data.append(adv_image.tolist())
+        adv_targets.append(adv_target)
+    adv_data = torch.tensor(adv_data)
+    adv_targets = torch.tensor(adv_targets)
+    # print(torch.equal(ori_data, data))
+    # print(torch.equal(data, adv_data))
+
+    # print(data)
+    # print(target)
+    # # adv_data, adv_target = attack_func(model, data, epsilon)
+    # print(adv_data)
+    # print(adv_targets)
+    # exit(0)
     return alpha * original_loss(model, data, target) + \
         (1 - alpha) * original_loss(model, adv_data, target)
+    # return original_loss(model, data, target)
+    # output = model(data)
+    # return F.nll_loss(output, target)
 
 def adv_train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
+        # print(len(data))
+        # print(len(data[0]))
+        # print(len(data[0][0]))
+        # print(len(data[0][0][0]))
+        # print(data[0][0][0][0])
+        # exit(0)
         # output = model(data)
-        loss = adv_loss(model, data, target, my_nll, A.FGMS, 7)
+        # loss = adv_loss(model, data, target, my_nll, A.fixed_I_FGMS, 7)
+        loss = adv_loss(model, data, target, my_nll, A.FGMS, 0.7)
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
@@ -63,17 +95,24 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     train_loader = torch.utils.data.DataLoader(
-        MyDataset("train", transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
+        MyDataset("train", transform=transforms.Compose([transforms.ToTensor()])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        MyDataset("test", transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
+        MyDataset("test", transform=transforms.Compose([transforms.ToTensor()])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    
+    # train_loader = torch.utils.data.DataLoader(
+    #     MyDataset("train", transform=transforms.Compose([
+    #                        transforms.ToTensor(),
+    #                        transforms.Normalize((0.1307,), (0.3081,))
+    #                    ])),
+    #     batch_size=args.batch_size, shuffle=True, **kwargs)
+    # test_loader = torch.utils.data.DataLoader(
+    #     MyDataset("test", transform=transforms.Compose([
+    #                        transforms.ToTensor(),
+    #                        transforms.Normalize((0.1307,), (0.3081,))
+    #                    ])),
+    #     batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)

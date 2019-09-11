@@ -23,6 +23,7 @@ def FGMS(model, ori_image, epsilon):
 
     image_var = image.clone().detach().requires_grad_(True)
     attackoutputs = model(image_var)
+    model.zero_grad()
     loss = torch.nn.functional.nll_loss(attackoutputs, predicted)
     loss.backward()
     
@@ -42,6 +43,7 @@ def I_FGMS(model, ori_image, epsilon):
     while torch.equal(attacklabel.float(), predicted.float()):
         image_var = image.clone().detach().requires_grad_(True)
         attackoutputs = model(image_var)
+        model.zero_grad()
         loss = torch.nn.functional.nll_loss(attackoutputs, predicted)
         loss.backward()
         
@@ -67,6 +69,7 @@ def fixed_I_FGMS(model, ori_image, epsilon):
     while torch.equal(attacklabel.float(), predicted.float()):
         image_var = image.clone().detach().requires_grad_(True)
         attackoutputs = model(image_var)
+        model.zero_grad()
         loss = torch.nn.functional.nll_loss(attackoutputs, predicted)
         loss.backward()
         '''
@@ -81,6 +84,9 @@ def fixed_I_FGMS(model, ori_image, epsilon):
         count += 1
     
     return image, count
+
+def CW_L2(model, ori_image, fn):
+    pass
 
 def evaluate(model, data_set, num_data, eps, attackfunc):
     count = 0
@@ -141,7 +147,7 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     model = Net().to(device)
-    model.load_state_dict(torch.load("mnist_cnn_ad.pt"))
+    model.load_state_dict(torch.load("mnist_cnn.pt"))
     model.eval()
     # image = Image.open("attack.png").convert("L")
     # #image = Image.open("look.png").convert("L")

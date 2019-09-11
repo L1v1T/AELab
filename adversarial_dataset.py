@@ -34,7 +34,7 @@ def save_image(file_name, image):
     xx=Image.fromarray(b)
     xx.save(file_name)
 
-def trans_dataset(out_folder, in_folder, model):
+def trans_dataset(out_folder, in_folder, model, attack_func):
     for _, _, files in os.walk(in_folder):
         count = 0
         file_list = []
@@ -45,7 +45,7 @@ def trans_dataset(out_folder, in_folder, model):
                 shutil.copyfile(in_folder + "/" + fname, out_folder + "/" + fname)
         for fimage in file_list:
             image = read_image(in_folder + "/" + fimage)
-            new_image = FGMS(model, image, epsilon = 16/255)
+            new_image, _ = attack_func(model, image, epsilon = 0.33)
             save_image(out_folder + "/" + fimage, new_image)
             count += 1
             print(count)
@@ -57,9 +57,8 @@ def main():
         os.mkdir(ad_test_folder)
 
     model = load_model("mnist_cnn.pt", "cpu")
-    trans_dataset(ad_train_folder, "train", model)
-    trans_dataset(ad_test_folder, "test", model)
-
+    trans_dataset(ad_train_folder, "train", model, FGMS)
+    trans_dataset(ad_test_folder, "test", model, FGMS)
 
 if __name__ == "__main__":
     main()
