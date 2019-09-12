@@ -6,17 +6,18 @@ from my_dataset import MyDataset
 import argparse
 import math
 import time
+import random
 
 import numpy as np
 
 def classifies(model, image):
     outputs = model(image)
-    #print(outputs)
+    print(outputs)
     log_prob, predicted = torch.max(outputs, 1)
     print(math.exp(log_prob[0].data))
     return predicted
 
-def FGMS(model, ori_image, epsilon):
+def FGMS(model, ori_image, epsilon=0.33):
     image = ori_image.clone().detach()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
@@ -34,7 +35,7 @@ def FGMS(model, ori_image, epsilon):
     
     return image, 1
 
-def I_FGMS(model, ori_image, epsilon):
+def I_FGMS(model, ori_image, epsilon=0.07):
     image = ori_image.clone().detach()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
@@ -60,7 +61,7 @@ def I_FGMS(model, ori_image, epsilon):
     
     return image, count
 
-def fixed_I_FGMS(model, ori_image, epsilon):
+def fixed_I_FGMS(model, ori_image, epsilon=7):
     image = ori_image.clone().detach()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
@@ -87,25 +88,124 @@ def fixed_I_FGMS(model, ori_image, epsilon):
 
 Z_x = 0
 
-def f6(Z_x, k=0):
-    pass
+def f6(model, x, target, k=0.0):
+    # choose a random target
+    # print("****************************")
+    model(x)
+    indices = torch.tensor([target])
+    # print(Z_x)
+    # print(torch.nn.functional.softmax(Z_x, dim=1))
+    Z_x_t = torch.index_select(Z_x, 1, indices)
+    # print(Z_x_t)
 
-def CW_L2(model, ori_image, fn):
-    # get input of softmax
-    def func_Z(self, input, output):
-        global Z_x
-        Z_x = output.data
-    model.fc4.register_forward_hook(func_Z)
-    model(ori_image)
-    print(Z_x)
+    ilist = []
+    for i in range(Z_x.size()[1]):
+        ilist.append(i)
+    ilist.remove(target)
+    indices = torch.tensor(ilist)
 
+    Z_is = torch.index_select(Z_x, 1, indices)
+    # print(Z_is)
+
+    Z_is_max, i = torch.max(Z_is, 1)
+    Z_is_max = Z_is_max.unsqueeze(0)
+    # print(Z_is_max)
+    Z_i_t = Z_is_max - Z_x_t
+
+    # print("i")
+    # print(i)
+    # print("Z_i")
+    # print(Z_is_max)
+    # print("Z_t")
+    # print(Z_x_t)
+    # print("sub")
+    # print(Z_i_t)
+    # print("****************************")
+    
+    confidence = torch.tensor([[-k]])
+    # print(confidence)
+    if confidence > Z_i_t:
+        return confidence
+    else:
+        return Z_i_t
+
+def f2(model, x, target, k=0.0):
+    # choose a random target
+    # print("****************************")
+    F_x = model(x)
+    indices = torch.tensor([target])
+    # print(F_x)
+    # print(torch.nn.functional.softmax(F_x, dim=1))
+    F_x_t = torch.index_select(F_x, 1, indices)
+    # print(Z_x_t)
+
+    ilist = []
+    for i in range(F_x.size()[1]):
+        ilist.append(i)
+    ilist.remove(target)
+    indices = torch.tensor(ilist)
+
+    F_is = torch.index_select(F_x, 1, indices)
+    # print(Z_is)
+
+    F_is_max, i = torch.max(F_is, 1)
+    F_is_max = F_is_max.unsqueeze(0)
+    # print(Z_is_max)
+    F_i_t = F_is_max - F_x_t
+
+    # print("i")
+    # print(i)
+    # print("F_i")
+    # print(F_is_max)
+    # print("F_t")
+    # print(F_x_t)
+    # print("sub")
+    # print(F_i_t)
+    # print("****************************")
+    
+    confidence = torch.tensor([[-k]])
+    # print(confidence)
+    if confidence > F_i_t:
+        return confidence
+    else:
+        return F_i_t
+
+def CW_L2(model, ori_image, c, label, fn, iter):
+    # def func_Z(self, input, output):
+    #     global Z_x
+    #     Z_x = output.data
+    # model.fc2.register_forward_hook(func_Z)
+
+    target = random.randint(0, model.fc2.out_features - 1)
+    while target == label:
+        target = random.randint(0, model.fc2.out_features - 1)
+    print("target")
+    print(target)
+    # print(Z_x.size()[1])
+
+    # define new variable omega and perturbation delta
     omega = torch.zeros(ori_image.size(), requires_grad=True)
-    delta = 0.5 * (torch.tanh(omega) + 1)
-    print(delta)
+    # delta = 0.5 * (torch.tanh(omega) + 1)
+    
+    # print(f6(model, delta, label))
 
+    
+    # print(omega)
+    # print(omega.grad)
+    # print(type(modify))
+    # omega = omega - modify
+    # print(omega)
+    for _ in range(iter - 1):
+        # objective.zero_grad()
+        omega_var = omega.clone().detach().requires_grad_(True)
+        ad_data = 0.5 * (torch.tanh(omega_var) + 1)
+        # objective = torch.norm((delta - ori_image)) + c * f6(model, delta, target)
+        # k 的影响很大
+        objective = torch.norm((ad_data - ori_image)) + c * f2(model, ad_data, target, 0.0)
+        objective.backward(retain_graph=True)
+        omega = omega - (0.5 * omega_var.grad)
 
-
-    return ori_image
+    return ad_data
 
 def evaluate(model, data_set, num_data, eps, attackfunc):
     count = 0
@@ -166,7 +266,7 @@ def main():
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     model = Net().to(device)
-    model.load_state_dict(torch.load("mnist_cnn_ad_5.pt"))
+    model.load_state_dict(torch.load("mnist_cnn.pt"))
     model.eval()
     image = Image.open("attack.png").convert("L")
     #image = Image.open("look.png").convert("L")
@@ -185,7 +285,8 @@ def main():
     # print(len(image[0][0]))
     #print(len(image[0][0][0]))
     image = image.unsqueeze(0)
-    print(classifies(model, image))
+    prediction = classifies(model, image)
+    print(prediction)
     # print(len(image))
     # print(len(image[0]))
     # print(len(image[0][0]))
@@ -193,34 +294,35 @@ def main():
     
     #print("original image")
     #print(image)
-    CW_L2(model, image)
-    exit(0)
+
     # new_sample, _ = fixed_I_FGMS(model, image, epsilon = 0.07)
-    # #print("new image")
-    # #print(new_sample)
-    # print(classifies(model, new_sample))
-    # new_sample = new_sample.squeeze(0)
-    # image = image.squeeze(0)
-    # #print(image.size())
-    # perturbation = torch.abs(new_sample - image)
-    # print(torch.mean(perturbation))
-    # b=np.array(new_sample)  #b.shape  (1,64,64)
-    # maxi=b.max()
-    # b=b*255./maxi
-    # b=b.transpose(1,2,0).astype(np.uint8)
-    # b=np.squeeze(b,axis=2)
-    # xx=Image.fromarray(b)
-    # xx.save("look.png")
+    new_sample = CW_L2(model, image, 5.0, prediction, f2, 600)
+    new_sample = new_sample.detach()
+    #print("new image")
+    #print(new_sample)
+    print(classifies(model, new_sample))
+    new_sample = new_sample.squeeze(0)
+    image = image.squeeze(0)
+    #print(image.size())
+    perturbation = torch.abs(new_sample - image)
+    print(torch.norm(perturbation))
+    b=np.array(new_sample)  #b.shape  (1,64,64)
+    maxi=b.max()
+    b=b*255./maxi
+    b=b.transpose(1,2,0).astype(np.uint8)
+    b=np.squeeze(b,axis=2)
+    xx=Image.fromarray(b)
+    xx.save("look.png")
     
-    # b=np.array(perturbation)  #b.shape  (1,64,64)
-    # maxi=b.max()
-    # b=b*255./maxi
-    # b=b.transpose(1,2,0).astype(np.uint8)
-    # b=np.squeeze(b,axis=2)
-    # xx=Image.fromarray(b)
-    # xx.save("pertubation.png")
-    # #new_image = Image.fromarray(new_sample)
-    # #new_image.show()
+    b=np.array(perturbation)  #b.shape  (1,64,64)
+    maxi=b.max()
+    b=b*255./maxi
+    b=b.transpose(1,2,0).astype(np.uint8)
+    b=np.squeeze(b,axis=2)
+    xx=Image.fromarray(b)
+    xx.save("pertubation.png")
+    #new_image = Image.fromarray(new_sample)
+    #new_image.show()
 
     data_loader = torch.utils.data.DataLoader(
         MyDataset("test", transform=transforms.Compose([transforms.ToTensor()])),
@@ -242,8 +344,8 @@ def main():
     #     print(len(t))
     #     break
     # exit(0)
-    print("Evaluating FGSM")
-    print(evaluate(model, data_loader.dataset, 5000, 0.33, FGMS))
+    # print("Evaluating FGSM")
+    # print(evaluate(model, data_loader.dataset, 5000, 0.33, FGMS))
     # print("Evaluating I-FGSM")
     # print(evaluate(model, data_loader.dataset, 5000, 0.07, I_FGMS))
     # print("Evaluating my I-FGSM")

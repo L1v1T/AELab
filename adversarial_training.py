@@ -116,8 +116,8 @@ def main():
     #                    ])),
     #     batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = Net().to(device)
-    # model = load_model("mnist_cnn_20.pt", device)
+    # model = Net().to(device)
+    model = load_model("mnist_cnn_ad_fix_ifgsm.pt", device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
@@ -125,7 +125,7 @@ def main():
         test(args, model, device, test_loader)
 
     if (args.save_model):
-        torch.save(model.state_dict(),"mnist_cnn_ad_fix_ifgsm.pt")
+        torch.save(model.state_dict(),"mnist_cnn_ad_fix_ifgsm_10.pt")
 
 if __name__ == "__main__":
     main()

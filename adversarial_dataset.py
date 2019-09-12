@@ -1,4 +1,4 @@
-from attack import FGMS
+from attack import FGMS, fixed_I_FGMS
 from model import Net
 import torch
 import os
@@ -7,8 +7,8 @@ from torchvision import transforms
 import numpy as np
 import shutil
 
-ad_train_folder = "ad_train"
-ad_test_folder = "ad_test"
+ad_train_folder = "ad_fix_ifgsm_train"
+ad_test_folder = "ad_fix_ifgsm_test"
 
 def load_model(model_file, device):
     model = Net().to(device)
@@ -45,7 +45,7 @@ def trans_dataset(out_folder, in_folder, model, attack_func):
                 shutil.copyfile(in_folder + "/" + fname, out_folder + "/" + fname)
         for fimage in file_list:
             image = read_image(in_folder + "/" + fimage)
-            new_image, _ = attack_func(model, image, epsilon = 0.33)
+            new_image, _ = attack_func(model, image)
             save_image(out_folder + "/" + fimage, new_image)
             count += 1
             print(count)
@@ -57,8 +57,8 @@ def main():
         os.mkdir(ad_test_folder)
 
     model = load_model("mnist_cnn.pt", "cpu")
-    trans_dataset(ad_train_folder, "train", model, FGMS)
-    trans_dataset(ad_test_folder, "test", model, FGMS)
+    trans_dataset(ad_train_folder, "train", model, fixed_I_FGMS)
+    trans_dataset(ad_test_folder, "test", model, fixed_I_FGMS)
 
 if __name__ == "__main__":
     main()

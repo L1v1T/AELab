@@ -13,16 +13,16 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         
-        # self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        # self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        # self.fc1 = nn.Linear(4*4*50, 500)
-        # self.fc2 = nn.Linear(500, 10)
         self.conv1 = nn.Conv2d(1, 20, 5, 1)
         self.conv2 = nn.Conv2d(20, 50, 5, 1)
         self.fc1 = nn.Linear(4*4*50, 500)
-        self.fc2 = nn.Linear(500, 300)
-        self.fc3 = nn.Linear(300, 100)
-        self.fc4 = nn.Linear(100, 10)
+        self.fc2 = nn.Linear(500, 10)
+        # self.conv1 = nn.Conv2d(1, 20, 5, 1)
+        # self.conv2 = nn.Conv2d(20, 50, 5, 1)
+        # self.fc1 = nn.Linear(4*4*50, 500)
+        # self.fc2 = nn.Linear(500, 300)
+        # self.fc3 = nn.Linear(300, 100)
+        # self.fc4 = nn.Linear(100, 10)
         '''
         self.fc1 = nn.Linear(28*28, 500)
         self.fc2 = nn.Linear(500, 200)
@@ -33,22 +33,22 @@ class Net(nn.Module):
 
     def forward(self, x):
         
-        # x = F.relu(self.conv1(x))
-        # x = F.max_pool2d(x, 2, 2)
-        # x = F.relu(self.conv2(x))
-        # x = F.max_pool2d(x, 2, 2)
-        # x = x.view(-1, 4*4*50)
-        # x = F.relu(self.fc1(x))
-        # x = self.fc2(x)
         x = F.relu(self.conv1(x))
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv2(x))
         x = F.max_pool2d(x, 2, 2)
         x = x.view(-1, 4*4*50)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = self.fc2(x)
+        # x = F.relu(self.conv1(x))
+        # x = F.max_pool2d(x, 2, 2)
+        # x = F.relu(self.conv2(x))
+        # x = F.max_pool2d(x, 2, 2)
+        # x = x.view(-1, 4*4*50)
+        # x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        # x = self.fc4(x)
         '''
         x = x.view(-1, 28*28)
         x = F.relu(self.fc1(x))
@@ -147,12 +147,26 @@ def main():
                            transforms.ToTensor()])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        MyDataset("ad_test", transform=transforms.Compose([
+        MyDataset("test", transform=transforms.Compose([
                            transforms.ToTensor()])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    print("Evaluating original model...")
     model = load_model("mnist_cnn_ad_5.pt", device)
+    print("Evaluating model on original data set...")
+    test(args, model, device, test_loader)
+
+    test_loader = torch.utils.data.DataLoader(
+        MyDataset("ad_test", transform=transforms.Compose([
+                           transforms.ToTensor()])),
+        batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    print("Evaluating model on adversarial data set(FGSM)...")
+    test(args, model, device, test_loader)
+    
+    test_loader = torch.utils.data.DataLoader(
+        MyDataset("ad_fix_ifgsm_test", transform=transforms.Compose([
+                           transforms.ToTensor()])),
+        batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    print("Evaluating model on adversarial data set(FGSM)...")
     test(args, model, device, test_loader)
     exit(0)
     print("Evaluating adversarial model(epsilon = 0.33)...")
