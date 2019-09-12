@@ -85,11 +85,27 @@ def fixed_I_FGMS(model, ori_image, epsilon):
     
     return image, count
 
-def func_Z(model):
+Z_x = 0
+
+def f6(Z_x, k=0):
     pass
 
 def CW_L2(model, ori_image, fn):
-    pass
+    # get input of softmax
+    def func_Z(self, input, output):
+        global Z_x
+        Z_x = output.data
+    model.fc4.register_forward_hook(func_Z)
+    model(ori_image)
+    print(Z_x)
+
+    omega = torch.zeros(ori_image.size(), requires_grad=True)
+    delta = 0.5 * (torch.tanh(omega) + 1)
+    print(delta)
+
+
+
+    return ori_image
 
 def evaluate(model, data_set, num_data, eps, attackfunc):
     count = 0
@@ -152,31 +168,33 @@ def main():
     model = Net().to(device)
     model.load_state_dict(torch.load("mnist_cnn_ad_5.pt"))
     model.eval()
-    # image = Image.open("attack.png").convert("L")
-    # #image = Image.open("look.png").convert("L")
-    # #image.show()
-    # '''
-    # trans = transforms.Compose([
-    #             transforms.ToTensor(),
-    #             transforms.Normalize((0.1307,), (0.3081,))
-    #             ])
-    # '''
-    # trans = transforms.Compose([transforms.ToTensor()])
+    image = Image.open("attack.png").convert("L")
+    #image = Image.open("look.png").convert("L")
+    #image.show()
+    '''
+    trans = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+                ])
+    '''
+    trans = transforms.Compose([transforms.ToTensor()])
     
-    # image = trans(image)
-    # # print(len(image))
-    # # print(len(image[0]))
-    # # print(len(image[0][0]))
-    # #print(len(image[0][0][0]))
-    # image = image.unsqueeze(0)
-    # print(classifies(model, image))
-    # # print(len(image))
-    # # print(len(image[0]))
-    # # print(len(image[0][0]))
-    # # print(len(image[0][0][0]))
+    image = trans(image)
+    # print(len(image))
+    # print(len(image[0]))
+    # print(len(image[0][0]))
+    #print(len(image[0][0][0]))
+    image = image.unsqueeze(0)
+    print(classifies(model, image))
+    # print(len(image))
+    # print(len(image[0]))
+    # print(len(image[0][0]))
+    # print(len(image[0][0][0]))
     
-    # #print("original image")
-    # #print(image)
+    #print("original image")
+    #print(image)
+    CW_L2(model, image)
+    exit(0)
     # new_sample, _ = fixed_I_FGMS(model, image, epsilon = 0.07)
     # #print("new image")
     # #print(new_sample)

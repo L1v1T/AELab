@@ -16,7 +16,7 @@ def adv_loss(model, data, target, original_loss, attack_func, epsilon=0.33, alph
 
     adv_data = []
     adv_targets = []
-    ori_data = data.clone().detach()
+    # ori_data = data.clone().detach()
     # print(torch.equal(ori_data, data))
     for image in data:
         pass
@@ -53,8 +53,8 @@ def adv_train(args, model, device, train_loader, optimizer, epoch):
         # print(data[0][0][0][0])
         # exit(0)
         # output = model(data)
-        # loss = adv_loss(model, data, target, my_nll, A.fixed_I_FGMS, 7)
-        loss = adv_loss(model, data, target, my_nll, A.FGMS, 0.33)
+        loss = adv_loss(model, data, target, my_nll, A.fixed_I_FGMS, 7)
+        # loss = adv_loss(model, data, target, my_nll, A.FGMS, 0.33)
         optimizer.zero_grad()
         # output = model(data)
         # loss = F.nll_loss(output, target)
@@ -125,7 +125,7 @@ def main():
         test(args, model, device, test_loader)
 
     if (args.save_model):
-        torch.save(model.state_dict(),"mnist_cnn_ad.pt")
+        torch.save(model.state_dict(),"mnist_cnn_ad_fix_ifgsm.pt")
 
 if __name__ == "__main__":
     main()
