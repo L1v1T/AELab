@@ -7,7 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from my_dataset import MyDataset
 
-from torchsummary import summary
+# from torchsummary import summary
 
 class Net(nn.Module):
     def __init__(self):
@@ -151,50 +151,50 @@ def main():
                            transforms.ToTensor()])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = load_model("mnist_cnn_ad_5.pt", device)
-    print("Evaluating model on original data set...")
-    test(args, model, device, test_loader)
+    # model = load_model("mnist_cnn_ad_5.pt", device)
+    # print("Evaluating model on original data set...")
+    # test(args, model, device, test_loader)
 
-    test_loader = torch.utils.data.DataLoader(
-        MyDataset("ad_test", transform=transforms.Compose([
-                           transforms.ToTensor()])),
-        batch_size=args.test_batch_size, shuffle=True, **kwargs)
-    print("Evaluating model on adversarial data set(FGSM)...")
-    test(args, model, device, test_loader)
+    # test_loader = torch.utils.data.DataLoader(
+    #     MyDataset("ad_test", transform=transforms.Compose([
+    #                        transforms.ToTensor()])),
+    #     batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    # print("Evaluating model on adversarial data set(FGSM)...")
+    # test(args, model, device, test_loader)
     
-    test_loader = torch.utils.data.DataLoader(
-        MyDataset("ad_fix_ifgsm_test", transform=transforms.Compose([
-                           transforms.ToTensor()])),
-        batch_size=args.test_batch_size, shuffle=True, **kwargs)
-    print("Evaluating model on adversarial data set(FGSM)...")
-    test(args, model, device, test_loader)
-    exit(0)
-    print("Evaluating adversarial model(epsilon = 0.33)...")
-    model = load_model("mnist_cnn_ad_FGSM_0.33.pt", device)
-    test(args, model, device, test_loader)
-    print("Evaluating adversarial model(epsilon = 7)...")
-    model = load_model("mnist_cnn_ad_FGSM_7.pt", device)
-    test(args, model, device, test_loader)
+    # test_loader = torch.utils.data.DataLoader(
+    #     MyDataset("ad_fix_ifgsm_test", transform=transforms.Compose([
+    #                        transforms.ToTensor()])),
+    #     batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    # print("Evaluating model on adversarial data set(FGSM)...")
+    # test(args, model, device, test_loader)
+    # exit(0)
+    # print("Evaluating adversarial model(epsilon = 0.33)...")
+    # model = load_model("mnist_cnn_ad_FGSM_0.33.pt", device)
+    # test(args, model, device, test_loader)
+    # print("Evaluating adversarial model(epsilon = 7)...")
+    # model = load_model("mnist_cnn_ad_FGSM_7.pt", device)
+    # test(args, model, device, test_loader)
 
-    # model = Net().to(device)
+    model = Net().to(device)
     
-    # '''
-    # print(model.conv2.in_channels)
-    # print(len(model.conv2.weight.data[0]))
-    # print(len(model.conv2.weight.data[0][0]))
-    # print(len(model.conv2.weight.data[0][0][0]))
-    # '''
-    # # summary(model, (1, 28, 28))
-    # # exit(0)
+    '''
+    print(model.conv2.in_channels)
+    print(len(model.conv2.weight.data[0]))
+    print(len(model.conv2.weight.data[0][0]))
+    print(len(model.conv2.weight.data[0][0][0]))
+    '''
+    # summary(model, (1, 28, 28))
+    # exit(0)
 
-    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
-    # for epoch in range(1, args.epochs + 1):
-    #     train(args, model, device, train_loader, optimizer, epoch)
-    #     test(args, model, device, test_loader)
+    for epoch in range(1, args.epochs + 1):
+        train(args, model, device, train_loader, optimizer, epoch)
+        test(args, model, device, test_loader)
 
-    # if (args.save_model):
-    #     torch.save(model.state_dict(),"mnist_cnn.pt")
+    if (args.save_model):
+        torch.save(model.state_dict(),"mnist_cnn.pt")
         
 if __name__ == '__main__':
     main()
