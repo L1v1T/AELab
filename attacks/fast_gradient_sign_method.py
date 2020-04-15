@@ -12,7 +12,7 @@ class FastGradientSignMethod(Attack):
     def generate(self, model, x, labels):
         return FGSM(model, x, labels, self.attack_parameters)
 
-def FGMS(model, x, labels, attack_parameters, **kwargs):
+def FGMS(model, x, labels, attack_parameters):
     lf = attack_parameters["loss_function"]
     epsilon = attack_parameters["epsilon"]
     clip_min = attack_parameters["clip_min"]
