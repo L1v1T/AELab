@@ -1,3 +1,3 @@
 
-from adversarial-examples-pytorch.attacks.attack import Attack
+from attacks.attack import Attack
 

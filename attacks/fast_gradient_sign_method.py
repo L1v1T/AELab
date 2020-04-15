@@ -1,4 +1,5 @@
-from adversarial-examples-pytorch.attacks.attack import Attack
+from attacks.attack import Attack
+import torch
 
 class FastGradientSignMethod(Attack):
     def __init__(self, lf, eps=0.25, clip_min=-1.0, clip_max=1.0):
@@ -12,7 +13,7 @@ class FastGradientSignMethod(Attack):
     def generate(self, model, x, labels):
         return FGSM(model, x, labels, self.attack_parameters)
 
-def FGMS(model, x, labels, attack_parameters):
+def FGSM(model, x, labels, attack_parameters):
     lf = attack_parameters["loss_function"]
     epsilon = attack_parameters["epsilon"]
     clip_min = attack_parameters["clip_min"]
@@ -26,7 +27,7 @@ def FGMS(model, x, labels, attack_parameters):
     model.zero_grad()
     loss = lf(confidence, labels)
     loss.backward()
-    grad_sign = x_avd.grad.sign()
+    grad_sign = x_adv.grad.sign()
     x_copy += epsilon * grad_sign
 
     x_copy = torch.clamp(x_copy, clip_min, clip_max)
