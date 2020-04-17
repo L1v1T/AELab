@@ -25,6 +25,7 @@ def BIM(model, x, labels, attack_parameters, **kwargs):
     clip_min = attack_parameters["clip_min"]
     clip_max = attack_parameters["clip_max"]
 
+    device = kwargs["device"]
 
     x_adv = x.clone().detach().requires_grad_(True).to(device)
     

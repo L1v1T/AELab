@@ -46,6 +46,9 @@ def train(args, model, device, train_loader, optimizer, epoch):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
+        print(output)
+        print(target)
+        exit()
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
@@ -128,6 +131,9 @@ def options():
 
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+
+    parser.add_argument('--load-model', action='store_true', default=False,
+                        help='Read Pre-trained Model')
     args = parser.parse_args()
 
     return args
@@ -142,15 +148,21 @@ def main():
     
 
     model = Net().to(device)
-    model_training(args, model)
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn.pt"))
+    else:
+        model_training(args, model)
+    fgsm = FastGradientSignMethod(F.nll_loss, device=device)
+    
     test_loader = preload.dataloader.DataLoader(
         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),
         batch_size=args.test_batch_size)
-    fgsm = FastGradientSignMethod(F.nll_loss, device=device)
-    evaluate(model, fgsm, test_loader, device)
+    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
+    print("accuracy on original examples: {:.2f} %".format(100.*ori_acc))
+    print("accuracy on adversarial examples: {:.2f} %".format(100.*adv_acc))
 
 if __name__ == "__main__":
     main()

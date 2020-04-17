@@ -12,6 +12,25 @@ class FastGradientSignMethod(Attack):
 
     def generate(self, model, x, labels, **kwargs):
         return FGSM(model, x, labels, self.attack_parameters, **kwargs)
+        # return FGSM(model, x)
+
+# def FGSM(model, ori_image, epsilon=0.25):
+#     image = ori_image.clone().detach()
+#     outputs = model(image)
+#     _, predicted = torch.max(outputs, 1)
+
+#     image_var = image.clone().detach().requires_grad_(True)
+#     attackoutputs = model(image_var)
+#     model.zero_grad()
+#     loss = torch.nn.functional.nll_loss(attackoutputs, predicted)
+#     loss.backward()
+    
+#     grad_sign = image_var.grad.sign()
+#     image += epsilon * grad_sign
+
+#     image = torch.clamp(image, 0, 1)
+    
+#     return image
 
 def FGSM(model, x, labels, attack_parameters, **kwargs):
     lf = attack_parameters["loss_function"]
@@ -19,10 +38,9 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     clip_min = attack_parameters["clip_min"]
     clip_max = attack_parameters["clip_max"]
 
-
-    x_copy = x.clone().detach().to(device)
-    x_adv = x_copy.clone().detach().requires_grad_(True).to(device)
-    
+    device = kwargs["device"]
+    x_copy = x.clone().detach()
+    x_adv = x.clone().detach().requires_grad_(True)
     confidence = model(x_adv)
     model.zero_grad()
     loss = lf(confidence, labels)

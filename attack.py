@@ -17,7 +17,7 @@ def classifies(model, image):
     print(math.exp(log_prob[0].data))
     return predicted
 
-def FGMS(model, ori_image, epsilon=0.25):
+def FGSM(model, ori_image, epsilon=0.25):
     image = ori_image.clone().detach()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
@@ -35,7 +35,7 @@ def FGMS(model, ori_image, epsilon=0.25):
     
     return image, 1
 
-def I_FGMS(model, ori_image, epsilon=0.07):
+def I_FGSM(model, ori_image, epsilon=0.07):
     image = ori_image.clone().detach()
     outputs = model(image)
     _, predicted = torch.max(outputs, 1)
