@@ -1,3 +1,4 @@
+import torch
 
 def ListDataLoader(dataset, batch_size=1):
     datalist = []

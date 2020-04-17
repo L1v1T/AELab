@@ -11,7 +11,8 @@ from torch.optim.lr_scheduler import StepLR
 from evaluations.robust_evaluate import evaluate
 from attacks.fast_gradient_sign_method import FastGradientSignMethod
 
-import preload
+import preload.dataloader
+import preload.datasets
 
 class Net(nn.Module):
     def __init__(self):
