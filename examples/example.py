@@ -8,7 +8,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
-import evaluations.robust_evaluate
+import evaluations
 from attacks.fast_gradient_sign_method import FastGradientSignMethod
 
 import preload
