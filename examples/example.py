@@ -8,7 +8,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
-import evaluations
+from evaluations.robust_evaluate import evaluate
 from attacks.fast_gradient_sign_method import FastGradientSignMethod
 
 import preload
@@ -149,7 +149,7 @@ def main():
                        ])),
         batch_size=args.test_batch_size)
     fgsm = FastGradientSignMethod(F.nll_loss, device=device)
-    evaluations.robust_evaluate.evaluate(model, fgsm, test_loader, device)
+    evaluate(model, fgsm, test_loader, device)
 
 if __name__ == "__main__":
     main()
