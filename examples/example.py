@@ -148,7 +148,7 @@ def main():
                            transforms.Normalize((0.5,), (0.5,))
                        ])),
         batch_size=args.test_batch_size)
-    fgsm = FastGradientSignMethod(F.nll_loss)
+    fgsm = FastGradientSignMethod(F.nll_loss, device=device)
     evaluations.robust_evaluate.evaluate(model, fgsm, test_loader, device)
 
 if __name__ == "__main__":
