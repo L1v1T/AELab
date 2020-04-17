@@ -4,7 +4,7 @@ import torch
 
 
 class BasicIterativeMethod(Attack):
-    def __init__(self, lf, eps=0.25, alpha=0.01, iter_max=30, clip_min=-1.0, clip_max=1.0):
+    def __init__(self, lf, eps=0.25, alpha=0.01, iter_max=30, clip_min=-1.0, clip_max=1.0, **kwargs):
         super(BasicIterativeMethod, self).__init__()
         self.attack_parameters = { "epsilon" : eps, 
                                     "alpha" : alpha, 
@@ -14,8 +14,8 @@ class BasicIterativeMethod(Attack):
                                     "loss_function" : lf 
                                     }
 
-    def generate(self, model, x, labels):
-        return BIM(model, x, labels, self.attack_parameters)
+    def generate(self, model, x, labels, **kwargs):
+        return BIM(model, x, labels, self.attack_parameters, **kwargs)
 
 def BIM(model, x, labels, attack_parameters, **kwargs):
     lf = attack_parameters["loss_function"]

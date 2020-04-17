@@ -2,7 +2,7 @@ from attacks.attack import Attack
 import torch
 
 class FastGradientSignMethod(Attack):
-    def __init__(self, lf, eps=0.25, clip_min=-1.0, clip_max=1.0):
+    def __init__(self, lf, eps=0.25, clip_min=-1.0, clip_max=1.0, **kwargs):
         super(FastGradientSignMethod, self).__init__()
         self.attack_parameters = { "epsilon" : eps, 
                                     "clip_min" : clip_min, 
@@ -10,10 +10,10 @@ class FastGradientSignMethod(Attack):
                                     "loss_function" : lf 
                                     }
 
-    def generate(self, model, x, labels):
-        return FGSM(model, x, labels, self.attack_parameters)
+    def generate(self, model, x, labels, **kwargs):
+        return FGSM(model, x, labels, self.attack_parameters, **kwargs)
 
-def FGSM(model, x, labels, attack_parameters):
+def FGSM(model, x, labels, attack_parameters, **kwargs):
     lf = attack_parameters["loss_function"]
     epsilon = attack_parameters["epsilon"]
     clip_min = attack_parameters["clip_min"]
