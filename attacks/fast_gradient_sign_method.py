@@ -43,12 +43,10 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     labels = labels.to(device)
     x_copy = x.clone().detach()
     x_adv = x.clone().detach().requires_grad_(True)
-    print(x_adv)
     model.zero_grad()
     confidence = model(x_adv)
     loss = lf(confidence, labels)
     loss.backward()
-    print(x_adv.grad)
     grad_sign = x_adv.grad.sign()
     x_copy += epsilon * grad_sign
 
