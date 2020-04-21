@@ -39,8 +39,8 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     clip_max = attack_parameters["clip_max"]
 
     device = kwargs["device"]
-    x_copy = x.clone().detach()
-    x_adv = x.clone().detach().requires_grad_(True)
+    x_copy = x.clone().detach().to(device)
+    x_adv = x.clone().detach().requires_grad_(True).to(device)
     confidence = model(x_adv)
     model.zero_grad()
     loss = lf(confidence, labels)
