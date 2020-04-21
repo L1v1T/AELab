@@ -46,6 +46,7 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     confidence = model(x_adv)
     loss = lf(confidence, labels)
     loss.backward()
+    print(x_adv.grad)
     grad_sign = x_adv.grad.sign()
     x_copy += epsilon * grad_sign
 
