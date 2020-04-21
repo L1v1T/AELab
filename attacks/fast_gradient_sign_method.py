@@ -41,6 +41,7 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     device = kwargs["device"]
     x_copy = x.clone().detach().to(device)
     x_adv = x.clone().detach().requires_grad_(True).to(device)
+    print(x_adv)
     labels = labels.to(device)
     model.zero_grad()
     confidence = model(x_adv)
