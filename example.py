@@ -131,6 +131,10 @@ def options():
 
     parser.add_argument('--load-model', action='store_true', default=False,
                         help='Read Pre-trained Model')
+
+    parser.add_argument('--eps', type=float, default=0.25, metavar='epsilon',
+                        help='Max perturbation value (default: 0.25)')
+    
     args = parser.parse_args()
 
     return args
@@ -142,14 +146,13 @@ def main():
 
 
     device = torch.device("cuda" if use_cuda else "cpu")
-    
 
     model = Net().to(device)
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
         model_training(args, model)
-    fgsm = FastGradientSignMethod(F.nll_loss, device=device)
+    fgsm = FastGradientSignMethod(F.nll_loss, eps=args.eps, device=device)
     
     test_loader = preload.dataloader.DataLoader(
         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
