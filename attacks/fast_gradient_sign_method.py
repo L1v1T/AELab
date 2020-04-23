@@ -1,46 +1,37 @@
 from attacks.attack import Attack
 import torch
+import torch.nn.functional as F
 
 class FastGradientSignMethod(Attack):
-    def __init__(self, lf, eps=0.25, clip_min=-1.0, clip_max=1.0, **kwargs):
+    def __init__(self, lf=F.nll_loss, eps=0.67, clip_min=-1.0, clip_max=1.0, **kwargs):
         super(FastGradientSignMethod, self).__init__()
-        self.attack_parameters = { "epsilon" : eps, 
-                                    "clip_min" : clip_min, 
-                                    "clip_max" : clip_max, 
-                                    "loss_function" : lf 
-                                    }
+        self.lf = lf
+        self.eps = eps
+        self.clip_min = clip_min
+        self.clip_max = clip_max
 
     def generate(self, model, x, labels, **kwargs):
-        return FGSM(model, x, labels, self.attack_parameters, **kwargs)
-        # return FGSM(model, x)
+        self.update_params(**kwargs)
+        return FGSM(model, 
+                    x, 
+                    labels, 
+                    lf=self.lf, 
+                    eps=self.eps, 
+                    clip_min=self.clip_min, 
+                    clip_max=self.clip_max)
 
-# def FGSM(model, ori_image, epsilon=0.25):
-#     image = ori_image.clone().detach()
-#     outputs = model(image)
-#     _, predicted = torch.max(outputs, 1)
+    def update_params(self, **kwargs):
+        if 'lf' in kwargs:
+            self.lf = kwargs['lf']
+        if 'eps' in kwargs:
+            self.eps = kwargs['eps']
+        if 'clip_min' in kwargs:
+            self.clip_min = kwargs['clip_min']
+        if 'clip_max' in kwargs:
+            self.clip_max = kwargs['clip_max']
 
-#     image_var = image.clone().detach().requires_grad_(True)
-#     attackoutputs = model(image_var)
-#     model.zero_grad()
-#     loss = torch.nn.functional.nll_loss(attackoutputs, predicted)
-#     loss.backward()
-    
-#     grad_sign = image_var.grad.sign()
-#     image += epsilon * grad_sign
+def FGSM(model, x, labels, lf, eps=0.67, clip_min=-1.0, clip_max=1.0):
 
-#     image = torch.clamp(image, 0, 1)
-    
-#     return image
-
-def FGSM(model, x, labels, attack_parameters, **kwargs):
-    lf = attack_parameters["loss_function"]
-    epsilon = attack_parameters["epsilon"]
-    clip_min = attack_parameters["clip_min"]
-    clip_max = attack_parameters["clip_max"]
-
-    device = kwargs["device"]
-    x = x.to(device)
-    labels = labels.to(device)
     x_copy = x.clone().detach()
     x_adv = x.clone().detach().requires_grad_(True)
     model.zero_grad()
@@ -48,7 +39,7 @@ def FGSM(model, x, labels, attack_parameters, **kwargs):
     loss = lf(confidence, labels)
     loss.backward()
     grad_sign = x_adv.grad.sign()
-    x_copy += epsilon * grad_sign
+    x_copy += eps * grad_sign
 
     x_copy = torch.clamp(x_copy, clip_min, clip_max)
 

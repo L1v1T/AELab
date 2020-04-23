@@ -10,6 +10,7 @@ from torch.optim.lr_scheduler import StepLR
 
 from evaluations.robust_evaluate import evaluate
 from attacks.fast_gradient_sign_method import FastGradientSignMethod
+from attacks.basic_iterative_method import BasicIterativeMethod
 
 import preload.dataloader
 import preload.datasets
@@ -132,9 +133,12 @@ def options():
     parser.add_argument('--load-model', action='store_true', default=False,
                         help='Read Pre-trained Model')
 
-    parser.add_argument('--eps', type=float, default=0.25, metavar='epsilon',
-                        help='Max perturbation value (default: 0.25)')
+    parser.add_argument('--eps', type=float, default=0.67, metavar='epsilon',
+                        help='Max perturbation value (default: 0.67)')
     
+    parser.add_argument('--alpha', type=float, default=0.033, metavar='alpha',
+                        help='Max perturbation for each step (default: 0.033)')
+
     args = parser.parse_args()
 
     return args
@@ -152,17 +156,26 @@ def main():
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
         model_training(args, model)
-    fgsm = FastGradientSignMethod(F.nll_loss, eps=args.eps, device=device)
-    
+
+
     test_loader = preload.dataloader.DataLoader(
         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),
         batch_size=args.test_batch_size)
+
+    print("Evaluating FGSM on MNIST:")
+    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
     ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
-    print("accuracy on original examples: {:.2f} %".format(100.*ori_acc))
-    print("accuracy on adversarial examples: {:.2f} %".format(100.*adv_acc))
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
+    print("Evaluating BIM on MNIST:")
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
 
 if __name__ == "__main__":
     main()
