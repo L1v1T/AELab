@@ -105,7 +105,8 @@ def model_training(args, model, attack=None):
     for epoch in range(1, args.epochs + 1):
         if attack is not None:
             adv_train(model, attack, device, train_loader, optimizer, epoch)
-        train(args, model, device, train_loader, optimizer, epoch)
+        else:
+            train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
 
