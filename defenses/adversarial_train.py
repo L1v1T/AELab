@@ -6,7 +6,7 @@ def adv_train(model, attack, device, train_loader, optimizer, epoch):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        adv_output = model(attack.generate(data))
+        adv_output = model(attack.generate(model, data, target))
         loss = attack.lf(output, target) + attack.lf(adv_output, target)
         loss.backward()
         optimizer.step()
