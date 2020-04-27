@@ -34,7 +34,7 @@ class ProjectedGradientDescent(Attack):
                     alpha=self.alpha, 
                     iter_max=self.iter_max, 
                     clip_min=self.clip_min, 
-                    clip_max=self.clip_max
+                    clip_max=self.clip_max, 
                     rand_init=self.rand_init)
 
     
