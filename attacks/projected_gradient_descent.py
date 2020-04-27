@@ -65,7 +65,7 @@ def PGD(model, x, labels,
         rand_init=0.67, 
         **kwargs):
 
-    x_copy = x.clone().detach() + ((torch.rand(x.size()) - 0.5) * rand_init) / 0.5
+    x_copy = x.clone().detach() + (((torch.rand(x.size()) - 0.5) * rand_init) / 0.5).to(x.device)
     
     iteration = 0
 
