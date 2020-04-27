@@ -143,6 +143,9 @@ def options():
     parser.add_argument('--alpha', type=float, default=0.033, metavar='alpha',
                         help='Max perturbation for each step (default: 0.033)')
 
+    parser.add_argument('--iter-max', type=int, default=15, 
+                        help='Max iteration for iterative attacks (default: 15)')
+
     args = parser.parse_args()
 
     return args
@@ -177,7 +180,7 @@ def main():
     print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
 
     print("Evaluating BIM on MNIST:")
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
     ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
     print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
     print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
@@ -186,7 +189,7 @@ def main():
 
     print("Adversarial training:")
     model = Net().to(device)
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
     model_training(args, model, bim)
 
     test_loader = preload.dataloader.DataLoader(
@@ -203,7 +206,7 @@ def main():
     print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
 
     print("Evaluating BIM on MNIST:")
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
     ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
     print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
     print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
