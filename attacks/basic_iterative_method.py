@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class BasicIterativeMethod(Attack):
-    def __init__(self, lf=F.nll_loss, eps=0.25, alpha=0.01, iter_max=30, clip_min=-1.0, clip_max=1.0, **kwargs):
+    def __init__(self, lf=F.nll_loss, eps=0.67, alpha=0.033, iter_max=20, clip_min=-1.0, clip_max=1.0, **kwargs):
         super(BasicIterativeMethod, self).__init__()
         self.lf = lf
         self.eps = eps
@@ -43,7 +43,7 @@ class BasicIterativeMethod(Attack):
             self.clip_max = kwargs['clip_max']
 
 def BIM(model, x, labels, 
-        lf=F.nll_loss, eps=0.67, alpha=0.033, iter_max=30, clip_min=-1.0, clip_max=1.0, **kwargs):
+        lf=F.nll_loss, eps=0.67, alpha=0.033, iter_max=20, clip_min=-1.0, clip_max=1.0, **kwargs):
 
     x_copy = x.clone().detach()
     
