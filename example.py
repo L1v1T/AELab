@@ -15,6 +15,8 @@ from attacks.basic_iterative_method import BasicIterativeMethod
 import preload.dataloader
 import preload.datasets
 
+from defenses.adversarial_train import adv_train
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -75,7 +77,7 @@ def test(model, device, test_loader):
         100. * correct / len(test_loader.dataset)))
 
 
-def model_training(args, model):
+def model_training(args, model, attack=None):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -100,6 +102,8 @@ def model_training(args, model):
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     for epoch in range(1, args.epochs + 1):
+        if attack is not None:
+            adv_train(model, attack, device, train_loader, optimizer, epoch)
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
@@ -151,12 +155,39 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    print("Normal training:")
     model = Net().to(device)
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
         model_training(args, model)
 
+
+    test_loader = preload.dataloader.DataLoader(
+        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+        batch_size=args.test_batch_size)
+
+    print("Evaluating FGSM on MNIST:")
+    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
+    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
+    print("Evaluating BIM on MNIST:")
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
+
+
+    print("Adversarial training:")
+    model = Net().to(device)
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha)
+    model_training(args, model, bim)
 
     test_loader = preload.dataloader.DataLoader(
         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
