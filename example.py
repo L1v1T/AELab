@@ -145,8 +145,8 @@ def options():
     parser.add_argument('--alpha', type=float, default=0.033, metavar='alpha',
                         help='Max perturbation for each step (default: 0.033)')
 
-    parser.add_argument('--iter-max', type=int, default=15, 
-                        help='Max iteration for iterative attacks (default: 15)')
+    parser.add_argument('--iter-max', type=int, default=30, 
+                        help='Max iteration for iterative attacks (default: 30)')
 
     args = parser.parse_args()
 
