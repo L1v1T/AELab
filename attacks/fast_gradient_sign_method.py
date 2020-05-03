@@ -9,6 +9,7 @@ class FastGradientSignMethod(Attack):
         self.eps = eps
         self.clip_min = clip_min
         self.clip_max = clip_max
+        self.name = "fgsm"
 
     def generate(self, model, x, labels, **kwargs):
         self.update_params(**kwargs)

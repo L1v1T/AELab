@@ -23,8 +23,6 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout2d(0.25)
-        self.dropout2 = nn.Dropout2d(0.5)
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
 
@@ -34,11 +32,8 @@ class Net(nn.Module):
         x = self.conv2(x)
         x = F.relu(x)
         x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
         x = self.fc1(x)
         x = F.relu(x)
-        x = self.dropout2(x)
         x = self.fc2(x)
         output = F.log_softmax(x, dim=1)
         return output
@@ -111,7 +106,10 @@ def model_training(args, model, attack=None):
         scheduler.step()
 
     if args.save_model:
-        torch.save(model.state_dict(), "mnist_cnn.pt")
+        if attack is None:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+        else:
+            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(attack.name))
 
 def options():
     # Training settings
@@ -152,6 +150,25 @@ def options():
 
     return args
 
+def evaluation(args, model, device, test_loader):
+    print("Evaluating FGSM on MNIST:")
+    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
+    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
+    print("Evaluating BIM on MNIST:")
+    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
+    print("Evaluating PGD on MNIST:")
+    pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    ori_acc, adv_acc = evaluate(model, pgd, test_loader, device)
+    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
+    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+
 def main():
     args = options()
 
@@ -160,102 +177,55 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    print("Normal training:")
+
+    test_loader = preload.dataloader.DataLoader(
+        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+        batch_size=args.test_batch_size)
+
     model = Net().to(device)
+    start_point = model.state_dict()
+
+    print("Normal training:")
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
+        model.load_state_dict(start_point)
         model_training(args, model)
+    evaluation(args, model, device, test_loader)
 
 
-    test_loader = preload.dataloader.DataLoader(
-        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-        batch_size=args.test_batch_size)
-
-    print("Evaluating FGSM on MNIST:")
-    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
-    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating BIM on MNIST:")
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating PGD on MNIST:")
-    pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, pgd, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
+    print("Adversarial training (FGSM):")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_fgsm.pt"))
+    else:
+        model.load_state_dict(start_point)
+        fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
+        model_training(args, model, fgsm)
+    evaluation(args, model, device, test_loader)
 
 
     print("Adversarial training (BIM):")
-    model = Net().to(device)
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    model_training(args, model, bim)
-
-    test_loader = preload.dataloader.DataLoader(
-        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-        batch_size=args.test_batch_size)
-
-    print("Evaluating FGSM on MNIST:")
-    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
-    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating BIM on MNIST:")
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating PGD on MNIST:")
-    pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, pgd, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_bim.pt"))
+    else:
+        model.load_state_dict(start_point)
+        bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+        model_training(args, model, bim)
+    evaluation(args, model, device, test_loader)
 
     
     
     print("Adversarial training (PGD):")
-    model = Net().to(device)
-    pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    model_training(args, model, pgd)
-
-    test_loader = preload.dataloader.DataLoader(
-        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-        batch_size=args.test_batch_size)
-
-    print("Evaluating FGSM on MNIST:")
-    fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
-    ori_acc, adv_acc = evaluate(model, fgsm, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating BIM on MNIST:")
-    bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, bim, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
-
-    print("Evaluating PGD on MNIST:")
-    pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    ori_acc, adv_acc = evaluate(model, pgd, test_loader, device)
-    print("Accuracy on original examples: {:.2f}%".format(100.*ori_acc))
-    print("Accuracy on adversarial examples: {:.2f}%".format(100.*adv_acc))
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
+    else:
+        model.load_state_dict(start_point)
+        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+        model_training(args, model, pgd)
+    evaluation(args, model, device, test_loader)
 
 if __name__ == "__main__":
     main()

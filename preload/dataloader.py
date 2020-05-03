@@ -7,7 +7,7 @@ def ListDataLoader(dataset, batch_size=1):
     
     for i in range(listlen):
         # make a batch
-        databatch = dataset[i*batch_size][0].clamp(min=-1.0, max=1.0).unsqueeze(dim=0)
+        databatch = dataset[i*batch_size][0].unsqueeze(dim=0)
         labels = []
         target = dataset[i*batch_size][1]
 
@@ -17,7 +17,7 @@ def ListDataLoader(dataset, batch_size=1):
             if i * batch_size + j == len(dataset):
                 break
             databatch = torch.cat([databatch, 
-                                    dataset[i*batch_size + j][0].clamp(min=-1.0, max=1.0).unsqueeze(dim=0)], dim=0)
+                                    dataset[i*batch_size + j][0].unsqueeze(dim=0)], dim=0)
             target = dataset[i*batch_size + j][1]
             labels.append(target)
         labels = torch.tensor(labels)

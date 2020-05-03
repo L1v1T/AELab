@@ -22,6 +22,7 @@ class ProjectedGradientDescent(Attack):
         self.clip_min = clip_min
         self.clip_max = clip_max
         self.rand_init = rand_init
+        self.name = "pgd"
 
     def generate(self, model, x, labels, **kwargs):
         self.update_params(**kwargs)

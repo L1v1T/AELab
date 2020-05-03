@@ -13,6 +13,7 @@ class BasicIterativeMethod(Attack):
         self.iter_max = iter_max
         self.clip_min = clip_min
         self.clip_max = clip_max
+        self.name = "bim"
 
     def generate(self, model, x, labels, **kwargs):
         self.update_params(**kwargs)
