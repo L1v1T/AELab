@@ -17,6 +17,7 @@ import preload.dataloader
 import preload.datasets
 
 from defenses.adversarial_train import adv_train
+from defenses.adversarial_train import adv_guide_train
 
 class Net(nn.Module):
     def __init__(self):
@@ -39,8 +40,24 @@ class Net(nn.Module):
         return output
 
 
-def train(args, model, device, train_loader, optimizer, epoch):
+class TrainMethod(object):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        self.model = model
+        self.device = device
+        self.train_loader = train_loader
+        self.optimizer = optimizer
+        self.update_kwargs(**kwargs)
+
+    def update_kwargs(self, **kwargs):
+        error = "Sub-classes must implement 'update_kwargs' method."
+        raise NotImplementedError(error)
+
+    def train(self, epoch):
+        normal_train(self.model, self.device, self.train_loader, self.optimizer, epoch)
+
+def normal_train(model, device, train_loader, optimizer, epoch):
     model.train()
+    train_loss = 0.0
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -48,10 +65,52 @@ def train(args, model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+        train_loss += loss.item()
+
+    train_loss /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
+
+
+class NormalTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(NormalTrain, self)
+
+    def update_kwargs(self, **kwargs):
+        pass
+
+
+class AdversarialTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(AdversarialTrain, self)
+
+    def update_kwargs(self, **kwargs):
+        self.attack = kwargs['attack']
+
+    def train(self, epoch):
+        adv_train(self.model, 
+                self.attack, 
+                self.device, 
+                self.train_loader, 
+                self.optimizer, 
+                epoch)
+
+class AdversarialGuidedTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(AdversarialGuidedTrain, self)
+
+    def update_kwargs(self, **kwargs):
+        self.guide_sets = kwargs['guide_sets']
+        self.epsilon = kwargs['epsilon']
+
+    def train(self, epoch):
+        adv_guide_train(self.model, 
+                        self.device, 
+                        self.train_loader, 
+                        self.guide_sets, 
+                        self.optimizer, 
+                        epoch, 
+                        self.epsilon)
 
 
 def test(model, device, test_loader):
@@ -68,48 +127,26 @@ def test(model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    print('\nTest set: Average loss: {:.6f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
 
-def model_training(args, model, attack=None):
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-
-    torch.manual_seed(args.seed)
-
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    train_loader = preload.dataloader.DataLoader(
-        preload.datasets.MNISTDataset('../data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-        batch_size=args.batch_size)
-    test_loader = preload.dataloader.DataLoader(
-        preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-        batch_size=args.test_batch_size)
-
-    optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-
-    scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+def model_training(args, model, train_method, device, test_loader, scheduler):
     for epoch in range(1, args.epochs + 1):
-        if attack is not None:
-            adv_train(model, attack, device, train_loader, optimizer, epoch)
-        else:
-            train(args, model, device, train_loader, optimizer, epoch)
+        train_method.train(epoch)
+        # if attack is not None:
+        #     adv_train(model, attack, device, train_loader, optimizer, epoch)
+        # else:
+        #     train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
 
-    if args.save_model:
-        if attack is None:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-        else:
-            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(attack.name))
+    # if args.save_model:
+    #     if attack is None:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    #     else:
+    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(attack.name))
 
 def options():
     # Training settings
@@ -174,16 +211,25 @@ def main():
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
+    torch.manual_seed(args.seed)
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    train_set = preload.datasets.MNISTDataset('../data', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.5,), (0.5,))
+                    ]))
 
+    train_loader = preload.dataloader.DataLoader(train_set, batch_size=args.batch_size)
+    
     test_loader = preload.dataloader.DataLoader(
         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),
         batch_size=args.test_batch_size)
+    
 
     model = Net().to(device)
     start_point = model.state_dict()
@@ -193,7 +239,12 @@ def main():
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
         model.load_state_dict(start_point)
-        model_training(args, model)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = NormalTrain(model, device, train_loader, optimizer)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
     evaluation(args, model, device, test_loader)
 
 
@@ -202,8 +253,13 @@ def main():
         model.load_state_dict(torch.load("mnist_cnn_fgsm.pt"))
     else:
         model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
-        model_training(args, model, fgsm)
+        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=fgsm)
+        model_training(args, model, adv_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(fgsm.name))
     evaluation(args, model, device, test_loader)
 
 
@@ -212,8 +268,13 @@ def main():
         model.load_state_dict(torch.load("mnist_cnn_bim.pt"))
     else:
         model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        model_training(args, model, bim)
+        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=bim)
+        model_training(args, model, adv_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(bim.name))
     evaluation(args, model, device, test_loader)
 
     
@@ -223,9 +284,81 @@ def main():
         model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
     else:
         model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        model_training(args, model, pgd)
+        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
+        model_training(args, model, adv_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
     evaluation(args, model, device, test_loader)
+
+
+    print("Adversarial guided training:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        guide_sets = make_guide_set(train_set, size=1000)
+        adv_guided_method = AdversarialGuidedTrain(model, 
+                                device, 
+                                train_loader, 
+                                optimizer, 
+                                guide_sets=guide_sets, 
+                                epsilon = args.eps)
+        model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+    evaluation(args, model, device, test_loader)
+        
+
+
+
+def make_guide_set(dataset, size=1):
+    guide_sets = []
+    import random
+    for i in range(10):
+        subset_index = []
+        count = 0
+        while count < 1000:
+            rand_index = random.randint(0, len(dataset) - 1)
+            if dataset[rand_index][1] == i:
+                subset_index.append(rand_index)
+                count += 1
+        guide_sets.append(torch.utils.data.Subset(dataset, subset_index))
+    
+    return guide_sets
+
+# def adversarial_guide_training():
+#     args = options()
+
+#     use_cuda = not args.no_cuda and torch.cuda.is_available()
+
+
+#     device = torch.device("cuda" if use_cuda else "cpu")
+
+
+#     test_loader = preload.dataloader.DataLoader(
+#         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
+#                            transforms.ToTensor(),
+#                            transforms.Normalize((0.5,), (0.5,))
+#                        ])),
+#         batch_size=args.test_batch_size)
+
+#     model = Net().to(device)
+#     print("Adversarial guide training:")
+#     if args.load_model:
+#         model.load_state_dict(torch.load("mnist_cnn_ag.pt"))
+#     else:
+#         train_set = preload.datasets.MNISTDataset('../data', train=True, download=True,
+#                                     transform=transforms.Compose([
+#                                         transforms.ToTensor(),
+#                                         transforms.Normalize((0.5,), (0.5,))
+#                                     ]))
+#         guide_set = make_guide_set(train_set, size=1000)
+#         adv_guide_train(model, device, train_loader, guide_sets, optimizer, epochs, epsilon)
 
 if __name__ == "__main__":
     main()
