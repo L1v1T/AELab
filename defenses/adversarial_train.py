@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 def adv_train(model, attack, device, train_loader, optimizer, epoch):
     model.train()
+    train_loss = 0.0
     for _, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -12,10 +13,11 @@ def adv_train(model, attack, device, train_loader, optimizer, epoch):
         loss = attack.lf(output, target) + attack.lf(adv_output, target)
         loss.backward()
         optimizer.step()
-        # if batch_idx % args.log_interval == 0:
-        #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         epoch, batch_idx * len(data), len(train_loader.dataset),
-        #         100. * batch_idx / len(train_loader), loss.item()))
+        train_loss += loss.item()
+
+    train_loss /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
 
 
 def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, epsilon):
@@ -40,6 +42,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
 
         return databatch, labels
     
+    train_loss = 0.0
     for _, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -60,3 +63,8 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
         loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
         loss.backward()
         optimizer.step()
+        train_loss += loss.item()
+
+    train_loss /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
