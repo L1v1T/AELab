@@ -74,7 +74,7 @@ def normal_train(model, device, train_loader, optimizer, epoch):
 
 class NormalTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
-        super(NormalTrain, self, model, device, train_loader, optimizer, **kwargs)
+        super(NormalTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
 
     def update_kwargs(self, **kwargs):
         pass
@@ -82,7 +82,7 @@ class NormalTrain(TrainMethod):
 
 class AdversarialTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
-        super(AdversarialTrain, self, model, device, train_loader, optimizer, **kwargs)
+        super(AdversarialTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
 
     def update_kwargs(self, **kwargs):
         self.attack = kwargs['attack']
@@ -97,7 +97,7 @@ class AdversarialTrain(TrainMethod):
 
 class AdversarialGuidedTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
-        super(AdversarialGuidedTrain, self, model, device, train_loader, optimizer, **kwargs)
+        super(AdversarialGuidedTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
 
     def update_kwargs(self, **kwargs):
         self.guide_sets = kwargs['guide_sets']
