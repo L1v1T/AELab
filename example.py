@@ -235,64 +235,64 @@ def main():
     model = Net().to(device)
     start_point = model.state_dict()
 
-    print("Normal training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = NormalTrain(model, device, train_loader, optimizer)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-    evaluation(args, model, device, test_loader)
+    # print("Normal training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
+    #     model_training(args, model, normal_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    # evaluation(args, model, device, test_loader)
 
 
-    print("Adversarial training (FGSM):")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_fgsm.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
-        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=fgsm)
-        model_training(args, model, adv_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(fgsm.name))
-    evaluation(args, model, device, test_loader)
+    # print("Adversarial training (FGSM):")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_fgsm.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
+    #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=fgsm)
+    #     model_training(args, model, adv_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(fgsm.name))
+    # evaluation(args, model, device, test_loader)
 
 
-    print("Adversarial training (BIM):")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_bim.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=bim)
-        model_training(args, model, adv_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(bim.name))
-    evaluation(args, model, device, test_loader)
+    # print("Adversarial training (BIM):")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_bim.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=bim)
+    #     model_training(args, model, adv_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(bim.name))
+    # evaluation(args, model, device, test_loader)
 
     
     
-    print("Adversarial training (PGD):")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
-        model_training(args, model, adv_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
-    evaluation(args, model, device, test_loader)
+    # print("Adversarial training (PGD):")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
+    #     model_training(args, model, adv_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
+    # evaluation(args, model, device, test_loader)
 
 
     print("Adversarial guided training:")
