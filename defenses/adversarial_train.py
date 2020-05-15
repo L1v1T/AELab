@@ -1,5 +1,6 @@
 import attacks.attack
 
+import torch
 import torch.nn.functional as F
 
 def adv_train(model, attack, device, train_loader, optimizer, epoch):
