@@ -53,7 +53,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
         data_copy = data.clone().detach().requires_grad_(True)
         output_copy = model(data_copy)
         L1 = F.nll_loss(output_copy, target)
-        print(torch.autograd.grad(L1, data_copy, create_graph=True))
+        print(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
         adv_pertur = epsilon * torch.autograd.grad(L1, data_copy, create_graph=True).sign()
 
         adv_data = data.clone().detach() + adv_pertur.clone().detach()
