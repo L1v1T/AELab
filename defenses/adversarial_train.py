@@ -43,7 +43,9 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
 
         return databatch, labels
     
-    train_loss = 0.0
+    loss_sum = 0.0
+    train_loss_sum = 0.0
+    guided_loss_sum = 0.0
     for _, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -62,11 +64,20 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
         guide_data, _ = guide_sample(guide_sets, adv_pred)
         guide_data = guide_data.to(device)
         
-        loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
+        train_loss = F.nll_loss(output, target)
+        guided_loss = F.mse_loss(data - guide_data, adv_pertur)
+        loss = train_loss + guided_loss
+        # loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
         loss.backward()
         optimizer.step()
-        train_loss += loss.item()
+        loss_sum += loss.item()
+        train_loss_sum += train_loss.item()
+        guided_loss_sum += guided_loss.item()
 
-    train_loss /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
+    loss_sum /= len(train_loader)
+    train_loss_sum /= len(train_loader)
+    guided_loss_sum /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, Guied Loss: {:.6f}'.format(
+            epoch, loss_sum, train_loss_sum, guided_loss_sum))
