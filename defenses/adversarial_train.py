@@ -65,8 +65,8 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         guide_data = guide_data.to(device)
         
         train_loss = F.nll_loss(output, target)
-        guided_loss = F.mse_loss(adv_pertur, data - guide_data)
-        # guided_loss = F.kl_div(adv_pertur, data - guide_data)
+        # guided_loss = F.mse_loss(adv_pertur, data - guide_data)
+        guided_loss = F.kl_div(adv_pertur, data - guide_data)
         loss = (1-beta)*train_loss + beta*guided_loss
         # loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
         loss.backward()
