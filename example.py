@@ -103,6 +103,7 @@ class AdversarialGuidedTrain(TrainMethod):
     def update_kwargs(self, **kwargs):
         self.guide_sets = kwargs['guide_sets']
         self.epsilon = kwargs['epsilon']
+        self.beta = kwargs['beta']
 
     def train(self, epoch):
         adv_guide_train(self.model, 
@@ -111,6 +112,7 @@ class AdversarialGuidedTrain(TrainMethod):
                         self.guide_sets, 
                         self.optimizer, 
                         epoch, 
+                        self.beta, 
                         self.epsilon)
 
 
@@ -183,6 +185,9 @@ def options():
 
     parser.add_argument('--iter-max', type=int, default=30, 
                         help='Max iteration for iterative attacks (default: 30)')
+
+    parser.add_argument('--beta', type=float, default=0.9, metavar='beta',
+                        help='Trade off factor of two loss function (default: 0.9)')
 
     args = parser.parse_args()
 
@@ -308,7 +313,8 @@ def main():
                                 train_loader, 
                                 optimizer, 
                                 guide_sets=guide_sets, 
-                                epsilon = args.eps)
+                                epsilon=args.eps, 
+                                beta=args.beta)
         model_training(args, model, adv_guided_method, device, test_loader, scheduler)
         if args.save_model:
             torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")

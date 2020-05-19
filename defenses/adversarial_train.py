@@ -21,7 +21,7 @@ def adv_train(model, attack, device, train_loader, optimizer, epoch):
     print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
 
 
-def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, epsilon):
+def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, beta, epsilon):
     model.train()
 
     def guide_sample(datasets, adv_pred):
@@ -66,7 +66,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, e
         
         train_loss = F.nll_loss(output, target)
         guided_loss = F.mse_loss(data - guide_data, adv_pertur)
-        loss = train_loss + guided_loss
+        loss = (1-beta)*train_loss + beta*guided_loss
         # loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
         loss.backward()
         optimizer.step()
