@@ -56,9 +56,10 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
 
         # target selecting
         # randomly select a target label and calculate the adversarial perturbation
-        target_label = target
-        while target_label == target:
-            target_label = random.randint(0, 9)
+        target_label = target.clone().detach()
+        for i in range(len(target_label)):
+            while target_label[i] == target[i]:
+                target_label[i] = random.randint(0, 9)
         data_copy = data.clone().detach().requires_grad_(True)
         output_copy = model(data_copy)
         L1 = F.nll_loss(output_copy, target_label)
