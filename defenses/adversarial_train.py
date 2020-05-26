@@ -65,7 +65,10 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         L1 = F.nll_loss(output_copy, target_label)
         # print(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
         adv_pertur = - epsilon * torch.autograd.grad(L1, data_copy, create_graph=True)[0]
-
+        min = torch.min(adv_pertur)
+        max = torch.max(adv_pertur)
+        zero_mean = (max - min) / 2
+        adv_pertur_norm = (adv_pertur - min - zero_mean) / zero_mean
         # adv_data = data.clone().detach() + adv_pertur.clone().detach()
         # adv_output = model(adv_data)
         # adv_pred = adv_output.argmax(dim=1, keepdim=True)
@@ -76,10 +79,10 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         guide_data = guide_data.to(device)
 
         train_loss = F.nll_loss(output, target)
-        guided_loss = F.mse_loss(adv_pertur, data - guide_data)
-        # guided_loss = F.kl_div(adv_pertur, data - guide_data)
+        guided_loss = F.mse_loss(adv_pertur_norm, data - guide_data)
+        # guided_loss = F.kl_div(adv_pertur_norm, data - guide_data)
         loss = (1-beta)*train_loss + beta*guided_loss
-        # loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur)
+        # loss = F.nll_loss(output, target) + F.mse_loss(data - guide_data, adv_pertur_norm)
         loss.backward()
         optimizer.step()
         loss_sum += loss.item()
