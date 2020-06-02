@@ -80,6 +80,57 @@ class NormalTrain(TrainMethod):
     def update_kwargs(self, **kwargs):
         pass
 
+class L2RegularTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(L2RegularTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
+    
+    def update_kwargs(self, **kwargs):
+        self.weight_decay = kwargs['weight_decay']
+
+    def train(self, epoch):
+        l2_regular_train(self.model, 
+                        self.device, 
+                        self.train_loader, 
+                        self.optimizer, 
+                        self.weight_decay,
+                        epoch)
+
+def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch):
+    model.train()
+    loss_sum = 0.0
+    train_loss_sum = 0.0
+    regular_loss_sum = 0.0
+
+    def l2_regular_loss(model):
+        loss = 0
+        for paramkey in model.state_dict().keys():
+            if 'bias' in paramkey:
+                pass
+            else:
+                loss += F.mse_loss(model.state_dict()[paramkey], 
+                        torch.zeros(model.state_dict()[paramkey].size()))
+        return loss
+    
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        train_loss = F.nll_loss(output, target)
+        regular_loss = l2_regular_loss(model)
+        loss = train_loss + weight_decay * regular_loss
+        loss.backward()
+        optimizer.step()
+
+        loss_sum += loss.item()
+        train_loss_sum += train_loss.item()
+        regular_loss_sum += regular_loss.item()
+
+    loss_sum /= len(train_loader)
+    train_loss_sum /= len(train_loader)
+    regular_loss_sum /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.6f}'.format(
+            epoch, loss_sum, train_loss_sum, regular_loss_sum))
 
 class AdversarialTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
