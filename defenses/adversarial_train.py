@@ -67,8 +67,9 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         adv_pertur = - epsilon * torch.autograd.grad(L1, data_copy, create_graph=True)[0]
         min = torch.min(adv_pertur)
         max = torch.max(adv_pertur)
+        mid = (max + min) / 2
         zero_mean = (max - min) / 2
-        adv_pertur_norm = (adv_pertur - min - zero_mean) / zero_mean
+        adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
         # adv_data = data.clone().detach() + adv_pertur.clone().detach()
         # adv_output = model(adv_data)
         # adv_pred = adv_output.argmax(dim=1, keepdim=True)
