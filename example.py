@@ -101,14 +101,14 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     train_loss_sum = 0.0
     regular_loss_sum = 0.0
 
-    def l2_regular_loss(model):
+    def l2_regular_loss(model, device):
         loss = 0
         for paramkey in model.state_dict().keys():
             if 'bias' in paramkey:
                 pass
             else:
                 loss += F.mse_loss(model.state_dict()[paramkey], 
-                        torch.zeros(model.state_dict()[paramkey].size()))
+                        torch.zeros(model.state_dict()[paramkey].size()).to(device))
         return loss
     
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -294,18 +294,18 @@ def main():
     model = Net().to(device)
     start_point = model.state_dict()
 
-    print("Normal training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = NormalTrain(model, device, train_loader, optimizer)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-    evaluation(args, model, device, test_loader)
+    # print("Normal training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
+    #     model_training(args, model, normal_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    # evaluation(args, model, device, test_loader)
 
 
     print("Normal training with L2 regularization:")
