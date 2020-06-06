@@ -240,6 +240,9 @@ def options():
     parser.add_argument('--beta', type=float, default=0.9, metavar='beta',
                         help='Trade off factor of two loss function (default: 0.9)')
 
+    parser.add_argument('--weight-decay', type=float, default=1.0, metaver='Weight decay', 
+                        help='Weight decay factor of l2 regularization (default: 1.0)')
+
     args = parser.parse_args()
 
     return args
@@ -291,18 +294,36 @@ def main():
     model = Net().to(device)
     start_point = model.state_dict()
 
-    # print("Normal training:")
-    # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
-    # else:
-    #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
-    #     model_training(args, model, normal_method, device, test_loader, scheduler)
-    #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
-    # evaluation(args, model, device, test_loader)
+    print("Normal training:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = NormalTrain(model, device, train_loader, optimizer)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+    evaluation(args, model, device, test_loader)
+
+
+    print("Normal training with L2 regularization:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_l2_regular.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = L2RegularTrain(model, 
+                                    device, 
+                                    train_loader, 
+                                    optimizer, 
+                                    weight_decay=args.weight_decay)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+    evaluation(args, model, device, test_loader)
 
 
     # print("Adversarial training (FGSM):")
@@ -351,25 +372,25 @@ def main():
     # evaluation(args, model, device, test_loader)
 
 
-    print("Adversarial guided training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        guide_sets = make_guide_set(train_set, size=1000)
-        adv_guided_method = AdversarialGuidedTrain(model, 
-                                device, 
-                                train_loader, 
-                                optimizer, 
-                                guide_sets=guide_sets, 
-                                epsilon=args.eps, 
-                                beta=args.beta)
-        model_training(args, model, adv_guided_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
-    evaluation(args, model, device, test_loader)
+    # print("Adversarial guided training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     guide_sets = make_guide_set(train_set, size=1000)
+    #     adv_guided_method = AdversarialGuidedTrain(model, 
+    #                             device, 
+    #                             train_loader, 
+    #                             optimizer, 
+    #                             guide_sets=guide_sets, 
+    #                             epsilon=args.eps, 
+    #                             beta=args.beta)
+    #     model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+    # evaluation(args, model, device, test_loader)
         
 
 
