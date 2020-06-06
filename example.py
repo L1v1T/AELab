@@ -240,7 +240,7 @@ def options():
     parser.add_argument('--beta', type=float, default=0.9, metavar='beta',
                         help='Trade off factor of two loss function (default: 0.9)')
 
-    parser.add_argument('--weight-decay', type=float, default=1.0, metaver='Weight decay', 
+    parser.add_argument('--weight-decay', type=float, default=1.0, metavar='Weight decay', 
                         help='Weight decay factor of l2 regularization (default: 1.0)')
 
     args = parser.parse_args()
