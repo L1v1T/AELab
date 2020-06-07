@@ -349,6 +349,7 @@ def main():
 
     model = Net().to(device)
     start_point = model.state_dict()
+    print(start_point['fc2.bias'])
 
     print("\nNormal training:")
     if args.load_model:
@@ -363,6 +364,7 @@ def main():
             torch.save(model.state_dict(), "mnist_cnn.pt")
     evaluation(args, model, device, test_loader)
 
+    print(start_point['fc2.bias'])
 
     print("\nNormal training with L2 regularization:")
     if args.load_model:
