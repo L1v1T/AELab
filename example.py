@@ -153,22 +153,31 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     regular_loss_sum = 0.0
 
     def l2_regular_loss(model, device):
-        loss = 0
+        loss = None
         n = 0
         weight_list = []
         for name, param in model.named_parameters():
             if 'weight' in name:
-                weight_list.append(param)
+                if loss == None:
+                    loss = F.mse_loss(param, 
+                                    torch.zeros(param.size()).to(device), 
+                                    reduction='sum')
+                else:
+                    loss = loss + F.mse_loss(param, 
+                                            torch.zeros(param.size()).to(device), 
+                                            reduction='sum')
+                n += param.numel()
 
         # for w in weight_list:
         #     loss += F.mse_loss(w, torch.zeros(w.size()).to(device), reduction='sum')
         #     n += w.numel()
 
-        for i in range(len(weight_list)):
-            loss += F.mse_loss(weight_list[i], 
-                            torch.zeros(weight_list[i].size()).to(device), 
-                            reduction='sum')
-            n += weight_list[i].numel()
+        # for i in range(len(weight_list)):
+            
+        #     loss += F.mse_loss(weight_list[i], 
+        #                     torch.zeros(weight_list[i].size()).to(device), 
+        #                     reduction='sum')
+        #     n += weight_list[i].numel()
         
         # for paramkey in model.state_dict().keys():
         #     if 'bias' in paramkey:
