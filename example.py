@@ -344,12 +344,12 @@ def main():
     model = Net().to(device)
     start_point = model.state_dict()
 
-    print("Normal training:")
+    print("\nNormal training:")
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn.pt"))
     else:
         model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         normal_method = NormalTrain(model, device, train_loader, optimizer)
         model_training(args, model, normal_method, device, test_loader, scheduler)
@@ -358,12 +358,12 @@ def main():
     evaluation(args, model, device, test_loader)
 
 
-    print("Normal training with L2 regularization:")
+    print("\nNormal training with L2 regularization:")
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn_l2_regular.pt"))
     else:
         model.load_state_dict(start_point)
-        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         normal_method = L2RegularTrain(model, 
                                     device, 
@@ -376,12 +376,12 @@ def main():
     evaluation(args, model, device, test_loader)
 
 
-    # print("Adversarial training (FGSM):")
+    # print("\nAdversarial training (FGSM):")
     # if args.load_model:
     #     model.load_state_dict(torch.load("mnist_cnn_fgsm.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     #     fgsm = FastGradientSignMethod(lf=F.nll_loss, eps=args.eps)
     #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=fgsm)
@@ -391,12 +391,12 @@ def main():
     # evaluation(args, model, device, test_loader)
 
 
-    # print("Adversarial training (BIM):")
+    # print("\nAdversarial training (BIM):")
     # if args.load_model:
     #     model.load_state_dict(torch.load("mnist_cnn_bim.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     #     bim = BasicIterativeMethod(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
     #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=bim)
@@ -407,12 +407,12 @@ def main():
 
     
     
-    # print("Adversarial training (PGD):")
+    # print("\nAdversarial training (PGD):")
     # if args.load_model:
     #     model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     #     pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
     #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
@@ -422,12 +422,12 @@ def main():
     # evaluation(args, model, device, test_loader)
 
 
-    # print("Adversarial guided training:")
+    # print("\nAdversarial guided training:")
     # if args.load_model:
     #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
     #     guide_sets = make_guide_set(train_set, size=1000)
     #     adv_guided_method = AdversarialGuidedTrain(model, 
