@@ -102,14 +102,14 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     regular_loss_sum = 0.0
 
     def l2_regular_loss(model, device):
-        loss = 0
+        loss = torch.zeros(0
         for paramkey in model.state_dict().keys():
             if 'bias' in paramkey:
                 pass
             else:
-                loss += torch.norm(model.state_dict()[paramkey])
-                # loss += F.mse_loss(model.state_dict()[paramkey], 
-                #         torch.zeros(model.state_dict()[paramkey].size()).to(device))
+                # loss += torch.norm(model.state_dict()[paramkey])
+                loss += F.mse_loss(model.state_dict()[paramkey], 
+                        torch.zeros(model.state_dict()[paramkey].size()).to(device))
         return loss
     
     for batch_idx, (data, target) in enumerate(train_loader):
