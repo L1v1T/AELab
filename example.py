@@ -42,7 +42,6 @@ class Net(nn.Module):
         output = F.log_softmax(x, dim=1)
         return output
 
-
 class TrainMethod(object):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
         self.model = model
@@ -161,9 +160,15 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
             if 'weight' in name:
                 weight_list.append(param)
 
-        for w in weight_list:
-            loss += F.mse_loss(w, torch.zeros(w.size()).to(device), reduction='sum')
-            n += w.numel()
+        # for w in weight_list:
+        #     loss += F.mse_loss(w, torch.zeros(w.size()).to(device), reduction='sum')
+        #     n += w.numel()
+
+        for i in range(len(weight_list)):
+            loss += F.mse_loss(weight_list[i], 
+                            torch.zeros(weight_list[i].size()).to(device), 
+                            reduction='sum')
+            n += weight_list[i].numel()
         
         # for paramkey in model.state_dict().keys():
         #     if 'bias' in paramkey:
@@ -188,7 +193,7 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
         #         print(loss)
         #         n += model.state_dict()[paramkey].numel()
         return loss / (2 * n)
-    
+    print(model.fc2.weight)
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -207,6 +212,10 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     loss_sum /= len(train_loader)
     train_loss_sum /= len(train_loader)
     regular_loss_sum /= len(train_loader)
+
+    
+    print(model.fc2.weight)
+    exit(0)
 
     print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.6f}'.format(
             epoch, loss_sum, train_loss_sum, regular_loss_sum))
