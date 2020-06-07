@@ -101,6 +101,7 @@ def normal_train_show_l2(model,
 
     def l2_regular_loss(model, device):
         loss = 0
+        print(loss)
         n = 0
         for paramkey in model.state_dict().keys():
             if 'bias' in paramkey:
@@ -110,6 +111,7 @@ def normal_train_show_l2(model,
                 loss += F.mse_loss(model.state_dict()[paramkey], 
                             torch.zeros(model.state_dict()[paramkey].size()).to(device), 
                             reduction='sum')
+                print(loss)
                 n += model.state_dict()[paramkey].numel()
         return loss / (2 * n)
     
