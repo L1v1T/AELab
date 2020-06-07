@@ -152,14 +152,17 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
 
     def l2_regular_loss(model, device):
         loss = 0
+        n = 0
         for paramkey in model.state_dict().keys():
             if 'bias' in paramkey:
                 pass
             else:
                 # loss += torch.norm(model.state_dict()[paramkey])
                 loss += F.mse_loss(model.state_dict()[paramkey], 
-                        torch.zeros(model.state_dict()[paramkey].size()).to(device))
-        return loss
+                            torch.zeros(model.state_dict()[paramkey].size()).to(device), 
+                            reduction='sum')
+                n += model.state_dict()[paramkey].numel()
+        return loss / (2 * n)
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -365,12 +368,12 @@ def main():
         model.load_state_dict(start_point)
         optimizer = optim.SGD(model.parameters(), lr=args.lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = L2RegularTrain(model, 
+        l2_method = L2RegularTrain(model, 
                                     device, 
                                     train_loader, 
                                     optimizer, 
                                     weight_decay=args.weight_decay)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
+        model_training(args, model, l2_method, device, test_loader, scheduler)
         if args.save_model:
             torch.save(model.state_dict(), "mnist_cnn.pt")
     evaluation(args, model, device, test_loader)
