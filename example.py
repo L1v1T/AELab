@@ -19,6 +19,8 @@ import preload.datasets
 from defenses.adversarial_train import adv_train
 from defenses.adversarial_train import adv_guide_train
 
+import copy
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -348,8 +350,7 @@ def main():
     
 
     model = Net().to(device)
-    start_point = model.state_dict()
-    print(start_point['fc2.bias'])
+    start_point = copy.deepcopy(model.state_dict())
 
     print("\nNormal training:")
     if args.load_model:
@@ -364,7 +365,6 @@ def main():
             torch.save(model.state_dict(), "mnist_cnn.pt")
     evaluation(args, model, device, test_loader)
 
-    print(start_point['fc2.bias'])
 
     print("\nNormal training with L2 regularization:")
     if args.load_model:
