@@ -175,7 +175,8 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
         output = model(data)
         train_loss = F.nll_loss(output, target)
         regular_loss = l2_regular_loss(model, device)
-        loss = train_loss + weight_decay * regular_loss
+        # loss = train_loss + weight_decay * regular_loss
+        loss = weight_decay * regular_loss
         loss.backward()
         optimizer.step()
 
