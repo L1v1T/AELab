@@ -99,16 +99,21 @@ def normal_train_show_l2(model,
     regular_loss_sum = 0.0
 
     def l2_regular_loss(model, device):
-        loss = 0
+        loss = None
         n = 0
-        weight_list = []
         for name, param in model.named_parameters():
             if 'weight' in name:
-                weight_list.append(param)
+                if loss == None:
+                    loss = F.mse_loss(param, 
+                                    torch.zeros(param.size()).to(device), 
+                                    reduction='sum')
+                else:
+                    loss = loss + F.mse_loss(param, 
+                                            torch.zeros(param.size()).to(device), 
+                                            reduction='sum')
+                n += param.numel()
 
-        for w in weight_list:
-            loss += F.mse_loss(w, torch.zeros(w.size()).to(device), reduction='sum')
-            n += w.numel()
+        return loss / (2 * n)
     
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
