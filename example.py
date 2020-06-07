@@ -80,6 +80,55 @@ class NormalTrain(TrainMethod):
     def update_kwargs(self, **kwargs):
         pass
 
+    def train(self, epoch):
+        normal_train_show_l2(self.model, 
+                            self.device, 
+                            self.train_loader, 
+                            self.optimizer, 
+                            epoch)
+
+def normal_train_show_l2(model, 
+                        device, 
+                        train_loader, 
+                        optimizer, 
+                        epoch):
+    model.train()
+    loss_sum = 0.0
+    train_loss_sum = 0.0
+    regular_loss_sum = 0.0
+
+    def l2_regular_loss(model, device):
+        loss = 0
+        for paramkey in model.state_dict().keys():
+            if 'bias' in paramkey:
+                pass
+            else:
+                # loss += torch.norm(model.state_dict()[paramkey])
+                loss += F.mse_loss(model.state_dict()[paramkey], 
+                        torch.zeros(model.state_dict()[paramkey].size()).to(device))
+        return loss
+    
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        train_loss = F.nll_loss(output, target)
+        regular_loss = l2_regular_loss(model, device)
+        loss = train_loss
+        loss.backward()
+        optimizer.step()
+
+        loss_sum += loss.item()
+        train_loss_sum += train_loss.item()
+        regular_loss_sum += regular_loss.item()
+
+    loss_sum /= len(train_loader)
+    train_loss_sum /= len(train_loader)
+    regular_loss_sum /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.6f}'.format(
+            epoch, loss_sum, train_loss_sum, regular_loss_sum))
+
 class L2RegularTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
         super(L2RegularTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
@@ -295,18 +344,18 @@ def main():
     model = Net().to(device)
     start_point = model.state_dict()
 
-    # print("Normal training:")
-    # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
-    # else:
-    #     model.load_state_dict(start_point)
-    #     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
-    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
-    #     model_training(args, model, normal_method, device, test_loader, scheduler)
-    #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
-    # evaluation(args, model, device, test_loader)
+    print("Normal training:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = NormalTrain(model, device, train_loader, optimizer)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+    evaluation(args, model, device, test_loader)
 
 
     print("Normal training with L2 regularization:")
