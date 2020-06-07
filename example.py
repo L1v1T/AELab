@@ -354,18 +354,18 @@ def main():
     model = Net().to(device)
     start_point = copy.deepcopy(model.state_dict())
 
-    # print("\nNormal training:")
-    # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
-    # else:
-    #     model.load_state_dict(start_point)
-    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
-    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
-    #     model_training(args, model, normal_method, device, test_loader, scheduler)
-    #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
-    # evaluation(args, model, device, test_loader)
+    print("\nNormal training:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = NormalTrain(model, device, train_loader, optimizer)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+    evaluation(args, model, device, test_loader)
 
 
     print("\nNormal training with L2 regularization:")
