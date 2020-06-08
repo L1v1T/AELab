@@ -133,7 +133,7 @@ def normal_train_show_l2(model,
     train_loss_sum /= len(train_loader)
     regular_loss_sum /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.6f}'.format(
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.3e}'.format(
             epoch, loss_sum, train_loss_sum, regular_loss_sum))
 
 class L2RegularTrain(TrainMethod):
@@ -194,7 +194,7 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     train_loss_sum /= len(train_loader)
     regular_loss_sum /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.6f}'.format(
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.3e}'.format(
             epoch, loss_sum, train_loss_sum, regular_loss_sum))
 
 class AdversarialTrain(TrainMethod):
@@ -359,18 +359,18 @@ def main():
     model = Net().to(device)
     start_point = copy.deepcopy(model.state_dict())
 
-    print("\nNormal training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = NormalTrain(model, device, train_loader, optimizer)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-    evaluation(args, model, device, test_loader)
+    # print("\nNormal training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
+    #     model_training(args, model, normal_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    # evaluation(args, model, device, test_loader)
 
 
     print("\nNormal training with L2 regularization:")
