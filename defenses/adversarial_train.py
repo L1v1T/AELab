@@ -64,12 +64,15 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         output_copy = model(data_copy)
         L1 = F.nll_loss(output_copy, target_label)
         # print(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
-        adv_pertur = - epsilon * torch.autograd.grad(L1, data_copy, create_graph=True)[0]
-        min = torch.min(adv_pertur)
-        max = torch.max(adv_pertur)
-        mid = (max + min) / 2
-        zero_mean = (max - min) / 2
-        adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
+        # adv_pertur = - epsilon * torch.autograd.grad(L1, data_copy, create_graph=True)[0]
+        # min = torch.min(adv_pertur)
+        # max = torch.max(adv_pertur)
+        # mid = (max + min) / 2
+        # zero_mean = (max - min) / 2
+        # adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
+
+        adv_pertur_norm = - epsilon * torch.tanh(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
+
         # adv_data = data.clone().detach() + adv_pertur.clone().detach()
         # adv_output = model(adv_data)
         # adv_pred = adv_output.argmax(dim=1, keepdim=True)
