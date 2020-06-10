@@ -460,20 +460,20 @@ def main():
 
 
 
-# def make_guide_set(dataset, size=1):
-#     guide_sets = []
-#     import random
-#     for i in range(10):
-#         subset_index = []
-#         count = 0
-#         while count < 1000:
-#             rand_index = random.randint(0, len(dataset) - 1)
-#             if dataset[rand_index][1] == i:
-#                 subset_index.append(rand_index)
-#                 count += 1
-#         guide_sets.append(torch.utils.data.Subset(dataset, subset_index))
+def make_guide_set(dataset, size=1):
+    guide_sets = []
+    import random
+    for i in range(10):
+        subset_index = []
+        count = 0
+        while count < 1000:
+            rand_index = random.randint(0, len(dataset) - 1)
+            if dataset[rand_index][1] == i:
+                subset_index.append(rand_index)
+                count += 1
+        guide_sets.append(torch.utils.data.Subset(dataset, subset_index))
     
-#     return guide_sets
+    return guide_sets
 
 # def adversarial_guide_training():
 #     args = options()
