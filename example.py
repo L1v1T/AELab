@@ -254,18 +254,9 @@ def test(model, device, test_loader):
 def model_training(args, model, train_method, device, test_loader, scheduler):
     for epoch in range(1, args.epochs + 1):
         train_method.train(epoch)
-        # if attack is not None:
-        #     adv_train(model, attack, device, train_loader, optimizer, epoch)
-        # else:
-        #     train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
 
-    # if args.save_model:
-    #     if attack is None:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
-    #     else:
-    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(attack.name))
 
 def options():
     # Training settings
@@ -359,18 +350,18 @@ def main():
     model = Net().to(device)
     start_point = copy.deepcopy(model.state_dict())
 
-    # print("\nNormal training:")
-    # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
-    # else:
-    #     model.load_state_dict(start_point)
-    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
-    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
-    #     model_training(args, model, normal_method, device, test_loader, scheduler)
-    #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
-    # evaluation(args, model, device, test_loader)
+    print("\nNormal training:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        normal_method = NormalTrain(model, device, train_loader, optimizer)
+        model_training(args, model, normal_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn.pt")
+    evaluation(args, model, device, test_loader)
 
 
     # print("\nNormal training with L2 regularization:")
@@ -437,25 +428,25 @@ def main():
     # evaluation(args, model, device, test_loader)
 
 
-    print("\nAdversarial guided training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        guide_sets = make_guide_set(train_set, size=1000)
-        adv_guided_method = AdversarialGuidedTrain(model, 
-                                device, 
-                                train_loader, 
-                                optimizer, 
-                                guide_sets=guide_sets, 
-                                epsilon=args.eps, 
-                                beta=args.beta)
-        model_training(args, model, adv_guided_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
-    evaluation(args, model, device, test_loader)
+    # print("\nAdversarial guided training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     guide_sets = make_guide_set(train_set, size=1000)
+    #     adv_guided_method = AdversarialGuidedTrain(model, 
+    #                             device, 
+    #                             train_loader, 
+    #                             optimizer, 
+    #                             guide_sets=guide_sets, 
+    #                             epsilon=args.eps, 
+    #                             beta=args.beta)
+    #     model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+    # evaluation(args, model, device, test_loader)
         
 
 
@@ -475,34 +466,6 @@ def make_guide_set(dataset, size=1):
     
     return guide_sets
 
-# def adversarial_guide_training():
-#     args = options()
-
-#     use_cuda = not args.no_cuda and torch.cuda.is_available()
-
-
-#     device = torch.device("cuda" if use_cuda else "cpu")
-
-
-#     test_loader = preload.dataloader.DataLoader(
-#         preload.datasets.MNISTDataset('../data', train=False, transform=transforms.Compose([
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.5,), (0.5,))
-#                        ])),
-#         batch_size=args.test_batch_size)
-
-#     model = Net().to(device)
-#     print("Adversarial guide training:")
-#     if args.load_model:
-#         model.load_state_dict(torch.load("mnist_cnn_ag.pt"))
-#     else:
-#         train_set = preload.datasets.MNISTDataset('../data', train=True, download=True,
-#                                     transform=transforms.Compose([
-#                                         transforms.ToTensor(),
-#                                         transforms.Normalize((0.5,), (0.5,))
-#                                     ]))
-#         guide_set = make_guide_set(train_set, size=1000)
-#         adv_guide_train(model, device, train_loader, guide_sets, optimizer, epochs, epsilon)
 
 if __name__ == "__main__":
     main()
