@@ -197,6 +197,82 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
     print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, L2 Regularization Loss: {:.3e}'.format(
             epoch, loss_sum, train_loss_sum, regular_loss_sum))
 
+
+class AdversarialGradientRegularTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(AdversarialGradientRegularTrain, self).__init__(model, 
+                                                            device, 
+                                                            train_loader, 
+                                                            optimizer, 
+                                                            **kwargs)
+    
+    def update_kwargs(self, **kwargs):
+        self.gradient_decay = kwargs['gradient_decay']
+
+    def train(self, epoch):
+        adv_regular_train(self.model, 
+                        self.device, 
+                        self.train_loader, 
+                        self.optimizer, 
+                        self.gradient_decay,
+                        epoch)
+
+def adv_regular_train(model, device, train_loader, optimizer, gradient_decay, epoch):
+    model.train()
+    loss_sum = 0.0
+    train_loss_sum = 0.0
+    regular_loss_sum = 0.0
+    adv_regular_loss_sum = 0.0
+
+    def l2_regular_loss(model, device):
+        loss = None
+        n = 0
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                if loss == None:
+                    loss = F.mse_loss(param, 
+                                    torch.zeros(param.size()).to(device), 
+                                    reduction='sum')
+                else:
+                    loss = loss + F.mse_loss(param, 
+                                            torch.zeros(param.size()).to(device), 
+                                            reduction='sum')
+                n += param.numel()
+
+        return loss / (2 * n)
+
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+
+        data_copy = data.clone().detach().requires_grad_(True)
+        output_copy = model(data_copy)
+        L1 = F.nll_loss(output_copy, target)
+        adv_gradient = torch.autograd.grad(L1, data_copy, create_graph=True)[0]
+
+        train_loss = F.nll_loss(output, target)
+        regular_loss = l2_regular_loss(model, device)
+        adv_regular_loss = F.mse_loss(adv_gradient, torch.zeros(adv_gradient.size()).to(device))
+        loss = train_loss + gradient_decay * adv_regular_loss
+
+        loss.backward()
+        optimizer.step()
+
+        loss_sum += loss.item()
+        train_loss_sum += train_loss.item()
+        regular_loss_sum += regular_loss.item()
+        adv_regular_loss_sum += adv_regular_loss.item()
+
+    loss_sum /= len(train_loader)
+    train_loss_sum /= len(train_loader)
+    regular_loss_sum /= len(train_loader)
+    adv_regular_loss_sum /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \\
+            Gradient Regularization Loss: {:.6f}, L2 Regularization Loss: {:.3e}'.format(
+            epoch, loss_sum, train_loss_sum, adv_regular_loss_sum, regular_loss_sum))
+
 class AdversarialTrain(TrainMethod):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
         super(AdversarialTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
@@ -298,6 +374,9 @@ def options():
 
     parser.add_argument('--weight-decay', type=float, default=1.0, metavar='Weight decay', 
                         help='Weight decay factor of l2 regularization (default: 1.0)')
+    
+    parser.add_argument('--gradient-decay', type=float, default=1.0, metavar='Adversarial gradient decay', 
+                        help='Adversarial gradient decay regularization factor (default: 1.0)')
 
     args = parser.parse_args()
 
@@ -350,18 +429,18 @@ def main():
     model = Net().to(device)
     start_point = copy.deepcopy(model.state_dict())
 
-    print("\nNormal training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = NormalTrain(model, device, train_loader, optimizer)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-    evaluation(args, model, device, test_loader)
+    # print("\nNormal training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
+    #     model_training(args, model, normal_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    # evaluation(args, model, device, test_loader)
 
 
     # print("\nNormal training with L2 regularization:")
@@ -378,9 +457,25 @@ def main():
     #                                 weight_decay=args.weight_decay)
     #     model_training(args, model, l2_method, device, test_loader, scheduler)
     #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    #         torch.save(model.state_dict(), "mnist_cnn_l2_regular.pt")
     # evaluation(args, model, device, test_loader)
 
+    print("\nTraining with adversarial gradient regularization:")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_adv_grad_regular.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        adv_grad_reg_method = AdversarialGradientRegularTrain(model, 
+                                                            device, 
+                                                            train_loader, 
+                                                            optimizer, 
+                                                            gradient_decay=args.gradient_decay)
+        model_training(args, model, adv_grad_reg_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_adv_grad_regular.pt")
+    evaluation(args, model, device, test_loader)
 
     # print("\nAdversarial training (FGSM):")
     # if args.load_model:
