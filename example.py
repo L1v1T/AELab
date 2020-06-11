@@ -269,7 +269,7 @@ def adv_regular_train(model, device, train_loader, optimizer, gradient_decay, ep
     regular_loss_sum /= len(train_loader)
     adv_regular_loss_sum /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \\
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \
             Gradient Regularization Loss: {:.6f}, L2 Regularization Loss: {:.3e}'.format(
             epoch, loss_sum, train_loss_sum, adv_regular_loss_sum, regular_loss_sum))
 
