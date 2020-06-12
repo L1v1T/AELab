@@ -51,7 +51,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         n = 0
         for name, param in model.named_parameters():
             if 'weight' in name:
-                if loss == None:
+                if loss is None:
                     loss = F.mse_loss(param, 
                                     torch.zeros(param.size()).to(device), 
                                     reduction='sum')
@@ -109,8 +109,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         regular_loss = l2_regular_loss(model, device)
         adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
         # guided_loss = F.kl_div(adv_pertur_norm, guide_data - data)
-        loss = (1-beta)*train_loss + beta*guided_loss + weight_decay * l2_regular_loss \
-            + gradient_decay * adv_regular_loss
+        loss = (1-beta)*train_loss + beta*guided_loss + weight_decay*regular_loss + gradient_decay*adv_regular_loss
         # loss = F.nll_loss(output, target) + F.mse_loss(guide_data - data, adv_pertur_norm)
         loss.backward()
         optimizer.step()
