@@ -307,7 +307,9 @@ class AdversarialGuidedTrain(TrainMethod):
                         self.optimizer, 
                         epoch, 
                         self.beta, 
-                        self.epsilon)
+                        self.epsilon, 
+                        self.weight_decay, 
+                        self.gradient_decay)
 
 
 def test(model, device, test_loader):
