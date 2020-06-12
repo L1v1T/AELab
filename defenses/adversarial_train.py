@@ -23,7 +23,8 @@ def adv_train(model, attack, device, train_loader, optimizer, epoch):
     print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, train_loss))
 
 
-def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, beta, epsilon):
+def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, 
+                    beta, epsilon, weight_decay, gradient_decay):
     model.train()
 
     def guide_sample(datasets, adv_pred):
@@ -45,8 +46,29 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
 
         return databatch, labels
     
+    def l2_regular_loss(model, device):
+        loss = None
+        n = 0
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                if loss == None:
+                    loss = F.mse_loss(param, 
+                                    torch.zeros(param.size()).to(device), 
+                                    reduction='sum')
+                else:
+                    loss = loss + F.mse_loss(param, 
+                                            torch.zeros(param.size()).to(device), 
+                                            reduction='sum')
+                n += param.numel()
+
+        return loss / (2 * n)
+
+    
+
     loss_sum = 0.0
     train_loss_sum = 0.0
+    regular_loss_sum = 0.0
+    adv_regular_loss_sum = 0.0
     guided_loss_sum = 0.0
     for _, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -64,14 +86,14 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
         output_copy = model(data_copy)
         L1 = F.nll_loss(output_copy, target_label)
         # print(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
-        # adv_pertur = - epsilon * torch.autograd.grad(L1, data_copy, create_graph=True)[0]
-        # min = torch.min(adv_pertur)
-        # max = torch.max(adv_pertur)
-        # mid = (max + min) / 2
-        # zero_mean = (max - min) / 2
-        # adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
+        adv_pertur = - torch.autograd.grad(L1, data_copy, create_graph=True)[0]
+        min = torch.min(adv_pertur)
+        max = torch.max(adv_pertur)
+        mid = (max + min) / 2
+        zero_mean = (max - min) / 2
+        adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
 
-        adv_pertur_norm = - epsilon * torch.tanh(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
+        # adv_pertur_norm = - epsilon * torch.tanh(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
 
         # adv_data = data.clone().detach() + adv_pertur.clone().detach()
         # adv_output = model(adv_data)
@@ -84,19 +106,28 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, b
 
         train_loss = F.nll_loss(output, target)
         guided_loss = F.mse_loss(adv_pertur_norm, guide_data - data)
+        regular_loss = l2_regular_loss(model, device)
+        adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
         # guided_loss = F.kl_div(adv_pertur_norm, guide_data - data)
-        loss = (1-beta)*train_loss + beta*guided_loss
+        loss = (1-beta)*train_loss + beta*guided_loss + weight_decay * l2_regular_loss \
+            + gradient_decay * adv_regular_loss
         # loss = F.nll_loss(output, target) + F.mse_loss(guide_data - data, adv_pertur_norm)
         loss.backward()
         optimizer.step()
         loss_sum += loss.item()
         train_loss_sum += train_loss.item()
+        regular_loss_sum += regular_loss.item()
+        adv_regular_loss_sum += adv_regular_loss.item()
         guided_loss_sum += guided_loss.item()
 
 
     loss_sum /= len(train_loader)
     train_loss_sum /= len(train_loader)
+    regular_loss_sum /= len(train_loader)
+    adv_regular_loss_sum /= len(train_loader)
     guided_loss_sum /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, Guided Loss: {:.6f}'.format(
-            epoch, loss_sum, train_loss_sum, guided_loss_sum))
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \
+Gradient Regularization Loss: {:.3e}, L2 Regularization Loss: {:.3e}, \
+Guided Loss: {:.6f}'.format(
+            epoch, loss_sum, train_loss_sum, adv_regular_loss_sum, regular_loss_sum, guided_loss_sum))
