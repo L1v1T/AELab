@@ -46,22 +46,22 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
 
         return databatch, labels
     
-    def l2_regular_loss(model, device):
-        loss = None
-        n = 0
-        for name, param in model.named_parameters():
-            if 'weight' in name:
-                if loss is None:
-                    loss = F.mse_loss(param, 
-                                    torch.zeros(param.size()).to(device), 
-                                    reduction='sum')
-                else:
-                    loss = loss + F.mse_loss(param, 
-                                            torch.zeros(param.size()).to(device), 
-                                            reduction='sum')
-                n += param.numel()
+    # def l2_regular_loss(model, device):
+    #     loss = None
+    #     n = 0
+    #     for name, param in model.named_parameters():
+    #         if 'weight' in name:
+    #             if loss is None:
+    #                 loss = F.mse_loss(param, 
+    #                                 torch.zeros(param.size()).to(device), 
+    #                                 reduction='sum')
+    #             else:
+    #                 loss = loss + F.mse_loss(param, 
+    #                                         torch.zeros(param.size()).to(device), 
+    #                                         reduction='sum')
+    #             n += param.numel()
 
-        return loss / (2 * n)
+    #     return loss / (2 * n)
 
     class LayerActivations:
         features = None
@@ -79,8 +79,8 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
 
     loss_sum = 0.0
     train_loss_sum = 0.0
-    regular_loss_sum = 0.0
-    adv_regular_loss_sum = 0.0
+    # regular_loss_sum = 0.0
+    # adv_regular_loss_sum = 0.0
     guided_loss_sum = 0.0
     for _, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -136,18 +136,21 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         optimizer.step()
         loss_sum += loss.item()
         train_loss_sum += train_loss.item()
-        regular_loss_sum += regular_loss.item()
-        adv_regular_loss_sum += adv_regular_loss.item()
+        # regular_loss_sum += regular_loss.item()
+        # adv_regular_loss_sum += adv_regular_loss.item()
         guided_loss_sum += guided_loss.item()
 
 
     loss_sum /= len(train_loader)
     train_loss_sum /= len(train_loader)
-    regular_loss_sum /= len(train_loader)
-    adv_regular_loss_sum /= len(train_loader)
+    # regular_loss_sum /= len(train_loader)
+    # adv_regular_loss_sum /= len(train_loader)
     guided_loss_sum /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \
-Gradient Regularization Loss: {:.3e}, L2 Regularization Loss: {:.3e}, \
-Guided Loss: {:.6f}'.format(
-            epoch, loss_sum, train_loss_sum, adv_regular_loss_sum, regular_loss_sum, guided_loss_sum))
+    print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, Guided Loss: {:.6f}'.format(
+            epoch, loss_sum, train_loss_sum, guided_loss_sum))
+
+#     print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, \
+# Gradient Regularization Loss: {:.3e}, L2 Regularization Loss: {:.3e}, \
+# Guided Loss: {:.6f}'.format(
+#             epoch, loss_sum, train_loss_sum, adv_regular_loss_sum, regular_loss_sum, guided_loss_sum))
