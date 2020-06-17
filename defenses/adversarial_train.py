@@ -126,10 +126,11 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         # guided_loss = F.mse_loss(adv_pertur_norm, guide_data - data)
         guided_loss = F.mse_loss(adv_data, guide_data)
         guided_loss = F.mse_loss(adv_features, guide_features)
-        regular_loss = l2_regular_loss(model, device)
-        adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
+        # regular_loss = l2_regular_loss(model, device)
+        # adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
         # guided_loss = F.kl_div(adv_pertur_norm, guide_data - data)
-        loss = (1-beta)*train_loss + beta*guided_loss + weight_decay*regular_loss + gradient_decay*adv_regular_loss
+        # loss = (1-beta)*train_loss + beta*guided_loss + weight_decay*regular_loss + gradient_decay*adv_regular_loss
+        loss = (1-beta)*train_loss + beta*guided_loss
         # loss = F.nll_loss(output, target) + F.mse_loss(guide_data - data, adv_pertur_norm)
         loss.backward()
         optimizer.step()
