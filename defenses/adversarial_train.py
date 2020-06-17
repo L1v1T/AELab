@@ -63,7 +63,19 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
 
         return loss / (2 * n)
 
+    class LayerActivations:
+        features = None
     
+        def __init__(self, model):
+            self.hook = model.fc1.register_forward_hook(self.hook_fn)
+
+        def hook_fn(self, module, input, output):
+            self.features = output
+    
+        def remove(self):
+            self.hook.remove()
+    
+    penultimate_layer = LayerActivations(model)
 
     loss_sum = 0.0
     train_loss_sum = 0.0
@@ -91,7 +103,8 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         max = torch.max(adv_pertur)
         mid = (max + min) / 2
         zero_mean = (max - min) / 2
-        adv_pertur_norm = 2 * (adv_pertur - mid) / zero_mean
+        adv_pertur_norm = epsilon * (adv_pertur - mid) / zero_mean
+        adv_data = data.clone().detach() + adv_pertur_norm
 
         # adv_pertur_norm = - epsilon * torch.tanh(torch.autograd.grad(L1, data_copy, create_graph=True)[0])
 
@@ -104,8 +117,15 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         guide_data, _ = guide_sample(guide_sets, target_label)
         guide_data = guide_data.to(device)
 
+        model(adv_data)
+        adv_features = penultimate_layer.features
+        model(guide_data)
+        guide_features = penultimate_layer.features
+
         train_loss = F.nll_loss(output, target)
-        guided_loss = F.mse_loss(adv_pertur_norm, guide_data - data)
+        # guided_loss = F.mse_loss(adv_pertur_norm, guide_data - data)
+        guided_loss = F.mse_loss(adv_data, guide_data)
+        guided_loss = F.mse_loss(adv_features, guide_features)
         regular_loss = l2_regular_loss(model, device)
         adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
         # guided_loss = F.kl_div(adv_pertur_norm, guide_data - data)
