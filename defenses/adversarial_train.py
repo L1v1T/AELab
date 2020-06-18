@@ -75,7 +75,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         def remove(self):
             self.hook.remove()
     
-    penultimate_layer = LayerActivations(model)
+    # penultimate_layer = LayerActivations(model)
 
     loss_sum = 0.0
     train_loss_sum = 0.0
@@ -117,15 +117,15 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         guide_data, _ = guide_sample(guide_sets, target_label)
         guide_data = guide_data.to(device)
 
-        model(adv_data)
-        adv_features = penultimate_layer.features
-        model(guide_data)
-        guide_features = penultimate_layer.features
+        # model(adv_data)
+        # adv_features = penultimate_layer.features
+        # model(guide_data)
+        # guide_features = penultimate_layer.features
 
         train_loss = F.nll_loss(output, target)
         # guided_loss = F.mse_loss(adv_pertur_norm, guide_data - data)
-        # guided_loss = F.mse_loss(adv_data, guide_data)
-        guided_loss = F.mse_loss(adv_features, guide_features)
+        guided_loss = F.mse_loss(adv_data, guide_data)
+        # guided_loss = F.mse_loss(adv_features, guide_features)
         # regular_loss = l2_regular_loss(model, device)
         # adv_regular_loss = F.mse_loss(adv_pertur, torch.zeros(adv_pertur.size()).to(device))
         # guided_loss = F.kl_div(adv_pertur_norm, guide_data - data)
@@ -147,7 +147,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
     # adv_regular_loss_sum /= len(train_loader)
     guided_loss_sum /= len(train_loader)
 
-    penultimate_layer.remove()
+    # penultimate_layer.remove()
 
     print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, Guided Loss: {:.6f}'.format(
             epoch, loss_sum, train_loss_sum, guided_loss_sum))
