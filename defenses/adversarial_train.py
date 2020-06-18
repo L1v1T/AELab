@@ -67,7 +67,7 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
         features = None
     
         def __init__(self, model):
-            self.hook = model.fc1.register_forward_hook(self.hook_fn)
+            self.hook = model.conv2.register_forward_hook(self.hook_fn)
 
         def hook_fn(self, module, input, output):
             self.features = output
@@ -146,6 +146,8 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
     # regular_loss_sum /= len(train_loader)
     # adv_regular_loss_sum /= len(train_loader)
     guided_loss_sum /= len(train_loader)
+
+    penultimate_layer.remove()
 
     print('Train Epoch: {} \tLoss: {:.6f}, Training Loss: {:.6f}, Guided Loss: {:.6f}'.format(
             epoch, loss_sum, train_loss_sum, guided_loss_sum))
