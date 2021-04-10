@@ -8,6 +8,7 @@ class GRAD(nn.Module):
         self.model = deepcopy(model)
 
     def forward(self, x, y=None):
+        x = x.detach()
         if not x.requires_grad:
             x.requires_grad_(True)
         

@@ -16,31 +16,33 @@ from attacks.projected_gradient_descent import ProjectedGradientDescent
 import preload.dataloader
 import preload.datasets
 
-from defenses.adversarial_train import adv_train
-from defenses.adversarial_train import adv_guide_train
+from defenses.adversarial_train import adv_train, adv_guide_train, adv_guide_pgd_train
 
 import copy
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
+from models.cnn import CNN
+from models.cnn_leaky_relu import CNNLeakyReLU
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+# class Net(nn.Module):
+#     def __init__(self):
+#         super(Net, self).__init__()
+#         self.conv1 = nn.Conv2d(1, 32, 3, 1)
+#         self.conv2 = nn.Conv2d(32, 64, 3, 1)
+#         self.fc1 = nn.Linear(9216, 128)
+#         self.fc2 = nn.Linear(128, 10)
+
+#     def forward(self, x):
+#         x = self.conv1(x)
+#         x = F.relu(x)
+#         x = self.conv2(x)
+#         x = F.relu(x)
+#         x = F.max_pool2d(x, 2)
+#         x = torch.flatten(x, 1)
+#         x = self.fc1(x)
+#         x = F.relu(x)
+#         x = self.fc2(x)
+#         output = F.log_softmax(x, dim=1)
+#         return output
 
 class TrainMethod(object):
     def __init__(self, model, device, train_loader, optimizer, **kwargs):
@@ -311,6 +313,33 @@ class AdversarialGuidedTrain(TrainMethod):
                         self.weight_decay, 
                         self.gradient_decay)
 
+class AdversarialGuidedPGDTrain(TrainMethod):
+    def __init__(self, model, device, train_loader, optimizer, **kwargs):
+        super(AdversarialGuidedPGDTrain, self).__init__(model, device, train_loader, optimizer, **kwargs)
+
+    def update_kwargs(self, **kwargs):
+        self.attack = kwargs['attack']
+        self.guide_sets = kwargs['guide_sets']
+        self.epsilon = kwargs['epsilon']
+        self.beta = kwargs['beta']
+        self.gamma = kwargs['gamma']
+        self.weight_decay = kwargs['weight_decay']
+        self.gradient_decay = kwargs['gradient_decay']
+
+    def train(self, epoch):
+        adv_guide_pgd_train(self.model, 
+                            self.attack, 
+                            self.device, 
+                            self.train_loader, 
+                            self.guide_sets, 
+                            self.optimizer, 
+                            epoch, 
+                            self.beta, 
+                            self.gamma, 
+                            self.epsilon, 
+                            self.weight_decay, 
+                            self.gradient_decay)
+
 
 def test(model, device, test_loader):
     model.eval()
@@ -357,7 +386,8 @@ def options():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-
+    parser.add_argument('--model', type=str, default='cnn', 
+                        help='optional: cnn, cnn-leaky-relu')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
 
@@ -375,6 +405,9 @@ def options():
 
     parser.add_argument('--beta', type=float, default=0.9, metavar='beta',
                         help='Trade off factor of two loss function (default: 0.9)')
+
+    parser.add_argument('--ygamma', type=float, default=0.3, metavar='beta',
+                        help='Trade off factor gamma in AG-PGD Training (default: 0.3)')
 
     parser.add_argument('--weight-decay', type=float, default=1.0, metavar='Weight decay', 
                         help='Weight decay factor of l2 regularization (default: 1.0)')
@@ -429,22 +462,27 @@ def main():
                        ])),
         batch_size=args.test_batch_size)
     
-
-    model = Net().to(device)
+    if args.model == 'cnn':
+        model = CNN().to(device)
+    elif args.model == 'cnn_leaky_relu':
+        model = CNNLeakyReLU.to(device)
+    else:
+        print("model error")
+        exit()
     start_point = copy.deepcopy(model.state_dict())
 
-    print("\nNormal training:")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.SGD(model.parameters(), lr=args.lr/100)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        normal_method = NormalTrain(model, device, train_loader, optimizer)
-        model_training(args, model, normal_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn.pt")
-    evaluation(args, model, device, test_loader)
+    # print("\nNormal training:")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     normal_method = NormalTrain(model, device, train_loader, optimizer)
+    #     model_training(args, model, normal_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn.pt")
+    # evaluation(args, model, device, test_loader)
 
 
     # print("\nNormal training with L2 regularization:")
@@ -512,44 +550,68 @@ def main():
 
     
     
-    # print("\nAdversarial training (PGD):")
+    print("\nAdversarial training (PGD):")
+    if args.load_model:
+        model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
+    else:
+        model.load_state_dict(start_point)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
+        model_training(args, model, adv_method, device, test_loader, scheduler)
+        if args.save_model:
+            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
+    evaluation(args, model, device, test_loader)
+
+
+    # print("\nAdversarial guided training:")
     # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
+    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=100*args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-    #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
-    #     model_training(args, model, adv_method, device, test_loader, scheduler)
+    #     guide_sets = make_guide_set(train_set, size=1000)
+    #     adv_guided_method = AdversarialGuidedTrain(model, 
+    #                             device, 
+    #                             train_loader, 
+    #                             optimizer, 
+    #                             guide_sets=guide_sets, 
+    #                             epsilon=args.eps, 
+    #                             beta=args.beta, 
+    #                             weight_decay=args.weight_decay, 
+    #                             gradient_decay=args.gradient_decay)
+    #     model_training(args, model, adv_guided_method, device, test_loader, scheduler)
     #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
+    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
     # evaluation(args, model, device, test_loader)
-
-
-    print("\nAdversarial guided training:")
+    
+    
+    print("\nAdversarial guided training + Adversarial training (PGD)")
     if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+        model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
     else:
         model.load_state_dict(start_point)
         optimizer = optim.SGD(model.parameters(), lr=args.lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         guide_sets = make_guide_set(train_set, size=1000)
-        adv_guided_method = AdversarialGuidedTrain(model, 
+        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+        adv_guided_pgd_method = AdversarialGuidedPGDTrain(model, 
                                 device, 
                                 train_loader, 
                                 optimizer, 
+                                attack=pgd, 
                                 guide_sets=guide_sets, 
                                 epsilon=args.eps, 
                                 beta=args.beta, 
+                                gamma=args.ygamma, 
                                 weight_decay=args.weight_decay, 
                                 gradient_decay=args.gradient_decay)
-        model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+        model_training(args, model, adv_guided_pgd_method, device, test_loader, scheduler)
         if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+            torch.save(model.state_dict(), "mnist_cnn_adv_guided_pgd.pt")
     evaluation(args, model, device, test_loader)
-        
-
 
 
 def make_guide_set(dataset, size=1):

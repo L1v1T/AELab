@@ -4,3 +4,4 @@ __pycache__/*
 hook_test.py
 .vscode/*
 *.jpeg
+*.pdf

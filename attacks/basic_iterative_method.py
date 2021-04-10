@@ -21,6 +21,7 @@ class BasicIterativeMethod(Attack):
                     model, 
                     x, 
                     labels, 
+                    target=None, 
                     lf=self.lf, 
                     eps=self.eps, 
                     alpha=self.alpha, 
@@ -30,6 +31,10 @@ class BasicIterativeMethod(Attack):
 
     
     def update_params(self, **kwargs):
+        if 'target' in kwargs:
+            self.target = kwargs['target']
+        else:
+            self.target = None
         if 'lf' in kwargs:
             self.lf = kwargs['lf']
         if 'eps' in kwargs:
@@ -44,7 +49,14 @@ class BasicIterativeMethod(Attack):
             self.clip_max = kwargs['clip_max']
 
 def BIM(model, x, labels, 
-        lf=F.nll_loss, eps=0.67, alpha=0.033, iter_max=30, clip_min=-1.0, clip_max=1.0, **kwargs):
+        target=None, 
+        lf=F.nll_loss, 
+        eps=0.67, 
+        alpha=0.033, 
+        iter_max=30, 
+        clip_min=-1.0, 
+        clip_max=1.0, 
+        **kwargs):
 
     x_copy = x.clone().detach()
     
@@ -57,11 +69,17 @@ def BIM(model, x, labels,
     while iteration != iter_max:
         x_adv = x_copy.clone().detach().requires_grad_(True)
         model.zero_grad()
-        confidences = model(x_adv)
-        loss = lf(confidences, labels)
+        confidence = model(x_adv)
+        if target == None:
+            loss = lf(confidence, labels)
+        else:
+            loss = lf(confidence, target)
         loss.backward()
         grad_sign = x_adv.grad.sign()
-        x_copy += alpha * grad_sign
+        if target == None:
+            x_copy += alpha * grad_sign
+        else:
+            x_copy -= alpha * grad_sign
 
         x_copy = torch.max(x_copy, torch.max(clip_tensor_min, x - eps))
         x_copy = torch.min(x_copy, torch.min(clip_tensor_max, x + eps))
