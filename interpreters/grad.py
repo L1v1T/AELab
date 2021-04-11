@@ -14,7 +14,7 @@ class GRAD(nn.Module):
         
         output = self.model(x)
 
-        if y == None:
+        if y is None:
             y = output.argmax(dim=1, keepdim=True)
         
         # scores = output.gather(1, y.view(-1, 1)).squeeze()

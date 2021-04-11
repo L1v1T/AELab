@@ -41,13 +41,13 @@ def FGSM(model, x, labels, target=None, lf=F.nll_loss, eps=0.67, clip_min=-1.0, 
     x_adv = x.clone().detach().requires_grad_(True)
     model.zero_grad()
     confidence = model(x_adv)
-    if target == None:
+    if target is None:
         loss = lf(confidence, labels)
     else:
         loss = lf(confidence, target)
     loss.backward()
     grad_sign = x_adv.grad.sign()
-    if target == None:
+    if target is None:
         x_copy += eps * grad_sign
     else:
         x_copy -= eps * grad_sign

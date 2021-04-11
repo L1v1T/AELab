@@ -105,7 +105,7 @@ def normal_train_show_l2(model,
         n = 0
         for name, param in model.named_parameters():
             if 'weight' in name:
-                if loss == None:
+                if loss is None:
                     loss = F.mse_loss(param, 
                                     torch.zeros(param.size()).to(device), 
                                     reduction='sum')
@@ -164,7 +164,7 @@ def l2_regular_train(model, device, train_loader, optimizer, weight_decay, epoch
         n = 0
         for name, param in model.named_parameters():
             if 'weight' in name:
-                if loss == None:
+                if loss is None:
                     loss = F.mse_loss(param, 
                                     torch.zeros(param.size()).to(device), 
                                     reduction='sum')
@@ -231,7 +231,7 @@ def adv_regular_train(model, device, train_loader, optimizer, gradient_decay, ep
         n = 0
         for name, param in model.named_parameters():
             if 'weight' in name:
-                if loss == None:
+                if loss is None:
                     loss = F.mse_loss(param, 
                                     torch.zeros(param.size()).to(device), 
                                     reduction='sum')

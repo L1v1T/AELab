@@ -70,13 +70,13 @@ def BIM(model, x, labels,
         x_adv = x_copy.clone().detach().requires_grad_(True)
         model.zero_grad()
         confidence = model(x_adv)
-        if target == None:
+        if target is None:
             loss = lf(confidence, labels)
         else:
             loss = lf(confidence, target)
         loss.backward()
         grad_sign = x_adv.grad.sign()
-        if target == None:
+        if target is None:
             x_copy += alpha * grad_sign
         else:
             x_copy -= alpha * grad_sign

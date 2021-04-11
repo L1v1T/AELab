@@ -201,7 +201,7 @@ def adv_guide_pgd_train(model,
         output = model(data)
 
         # target selecting
-        # randomly select a target label and calculate the adversarial perturbation
+        # generate adversarial perturbation for 9 target
         target_label = target.clone().detach()
         for i in range(len(target_label)):
             while target_label[i] == target[i]:
