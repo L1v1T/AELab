@@ -210,12 +210,23 @@ def adv_guide_pgd_train(model,
         output_copy = model(data_copy)
         L1 = F.nll_loss(output_copy, target_label)
         adv_pertur = - torch.autograd.grad(L1, data_copy, create_graph=True)[0]
-        min = torch.min(adv_pertur)
-        max = torch.max(adv_pertur)
-        mid = (max + min) / 2
-        zero_mean = (max - min) / 2
-        adv_pertur_norm = epsilon * (adv_pertur - mid) / zero_mean
-        adv_data = data.clone().detach() + adv_pertur_norm
+        
+        # normalizing adversarial perturbation
+        adv_max = torch.max(torch.max(adv_pertur, dim=-1)[0], dim=-1)[0]
+        adv_min = torch.min(torch.min(adv_pertur, dim=-1)[0], dim=-1)[0]
+        adv_mid = (adv_max + adv_min) / 2
+        adv_zero = (adv_max - adv_min) / 2
+        adv_norm = torch.ones_like(adv)
+        for i in range(len(adv_pertur)):
+            for j in range(len(adv_pertur[0])):
+                adv_norm[i][j] = (adv_pertur[i][j] - adv_mid[i][j].item()) / adv_zero[i][j].item()
+        adv_norm = epsilon * adv_norm
+        # min = torch.min(adv_pertur)
+        # max = torch.max(adv_pertur)
+        # mid = (max + min) / 2
+        # zero_mean = (max - min) / 2
+        # adv_pertur_norm = epsilon * (adv_pertur - mid) / zero_mean
+        adv_data = data.clone().detach() + adv_norm
 
         guide_data, _ = guide_sample(guide_sets, target_label)
         guide_data = guide_data.to(device)
