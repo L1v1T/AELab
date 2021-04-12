@@ -550,68 +550,68 @@ def main():
 
     
     
-    print("\nAdversarial training (PGD):")
-    if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
-    else:
-        model.load_state_dict(start_point)
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
-        model_training(args, model, adv_method, device, test_loader, scheduler)
-        if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
-    evaluation(args, model, device, test_loader)
-
-
-    # print("\nAdversarial guided training:")
+    # print("\nAdversarial training (PGD):")
     # if args.load_model:
-    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+    #     model.load_state_dict(torch.load("mnist_cnn_pgd.pt"))
     # else:
     #     model.load_state_dict(start_point)
-    #     optimizer = optim.SGD(model.parameters(), lr=100*args.lr)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
-    #     guide_sets = make_guide_set(train_set, size=1000)
-    #     adv_guided_method = AdversarialGuidedTrain(model, 
-    #                             device, 
-    #                             train_loader, 
-    #                             optimizer, 
-    #                             guide_sets=guide_sets, 
-    #                             epsilon=args.eps, 
-    #                             beta=args.beta, 
-    #                             weight_decay=args.weight_decay, 
-    #                             gradient_decay=args.gradient_decay)
-    #     model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+    #     pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    #     adv_method = AdversarialTrain(model, device, train_loader, optimizer, attack=pgd)
+    #     model_training(args, model, adv_method, device, test_loader, scheduler)
     #     if args.save_model:
-    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+    #         torch.save(model.state_dict(), "mnist_cnn_{}.pt".format(pgd.name))
     # evaluation(args, model, device, test_loader)
-    
-    
-    print("\nAdversarial guided training + Adversarial training (PGD)")
+
+
+    print("\nAdversarial guided training:")
     if args.load_model:
-        model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
+        model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     else:
         model.load_state_dict(start_point)
         optimizer = optim.SGD(model.parameters(), lr=args.lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
         guide_sets = make_guide_set(train_set, size=1000)
-        pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
-        adv_guided_pgd_method = AdversarialGuidedPGDTrain(model, 
+        adv_guided_method = AdversarialGuidedTrain(model, 
                                 device, 
                                 train_loader, 
                                 optimizer, 
-                                attack=pgd, 
                                 guide_sets=guide_sets, 
                                 epsilon=args.eps, 
                                 beta=args.beta, 
-                                gamma=args.ygamma, 
                                 weight_decay=args.weight_decay, 
                                 gradient_decay=args.gradient_decay)
-        model_training(args, model, adv_guided_pgd_method, device, test_loader, scheduler)
+        model_training(args, model, adv_guided_method, device, test_loader, scheduler)
         if args.save_model:
-            torch.save(model.state_dict(), "mnist_cnn_adv_guided_pgd.pt")
+            torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
     evaluation(args, model, device, test_loader)
+    
+    
+    # print("\nAdversarial guided training + Adversarial training (PGD)")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     guide_sets = make_guide_set(train_set, size=1000)
+    #     pgd = ProjectedGradientDescent(lf=F.nll_loss, eps=args.eps, alpha=args.alpha, iter_max=args.iter_max)
+    #     adv_guided_pgd_method = AdversarialGuidedPGDTrain(model, 
+    #                             device, 
+    #                             train_loader, 
+    #                             optimizer, 
+    #                             attack=pgd, 
+    #                             guide_sets=guide_sets, 
+    #                             epsilon=args.eps, 
+    #                             beta=args.beta, 
+    #                             gamma=args.ygamma, 
+    #                             weight_decay=args.weight_decay, 
+    #                             gradient_decay=args.gradient_decay)
+    #     model_training(args, model, adv_guided_pgd_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided_pgd.pt")
+    # evaluation(args, model, device, test_loader)
 
 
 def make_guide_set(dataset, size=1):
@@ -620,7 +620,7 @@ def make_guide_set(dataset, size=1):
     for i in range(10):
         subset_index = []
         count = 0
-        while count < 1000:
+        while count < size:
             rand_index = random.randint(0, len(dataset) - 1)
             if dataset[rand_index][1] == i:
                 subset_index.append(rand_index)
