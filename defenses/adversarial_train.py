@@ -24,7 +24,7 @@ def adv_train(model, attack, device, train_loader, optimizer, epoch):
 
 
 def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch, 
-                    beta, epsilon, weight_decay, gradient_decay):
+                    beta, epsilon, weight_decay, gradient_decay, attack='fgsm'):
     model.train()
 
     def guide_sample(datasets, adv_pred):
@@ -61,16 +61,10 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
     # regular_loss_sum = 0.0
     # adv_regular_loss_sum = 0.0
     guided_loss_sum = 0.0
-    for _, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
 
-        # target selecting
-        # generate adversarial perturbation for 9 target
-        aux_targets = aux_targets_gen(target)
-        guided_loss = 0.0
-        for target_label in aux_targets:
+    def adv_gen(model, data, target_label, attack=attack, **kwargs):
+        if attack == 'fgsm':
+            epsilon = kwargs['epsilon']
             target_label = target_label.to(device)
             data_copy = data.clone().detach().requires_grad_(True)
             output_copy = model(data_copy)
@@ -87,11 +81,46 @@ def adv_guide_train(model, device, train_loader, guide_sets, optimizer, epoch,
                     adv_norm[i][j] = (adv_pertur[i][j] - adv_mid[i][j].item()) / adv_zero[i][j].item()
             adv_norm = epsilon * adv_norm
             adv_data = data.clone().detach() + adv_norm
-        
+        if attack == 'pgd':
+            epsilon = kwargs['epsilon']
+            alpha = kwargs['alpha']
+            iter_max = int(epsilon//alpha)
+            target_label = target_label.to(device)
+            adv_data = data.clone().detach().requires_grad_(True)
+
+            for i in range(iter_max):
+                output_copy = model(adv_data)
+                L1 = F.nll_loss(output_copy, target_label)
+                adv_pertur = - torch.autograd.grad(L1, adv_data, create_graph=True)[0]
+                # normalizing adversarial perturbation
+                adv_max = torch.max(torch.max(adv_pertur, dim=-1)[0], dim=-1)[0]
+                adv_min = torch.min(torch.min(adv_pertur, dim=-1)[0], dim=-1)[0]
+                adv_mid = (adv_max + adv_min) / 2
+                adv_zero = (adv_max - adv_min) / 2
+                adv_norm = torch.ones_like(adv_pertur)
+                for i in range(len(adv_pertur)):
+                    for j in range(len(adv_pertur[0])):
+                        adv_norm[i][j] = (adv_pertur[i][j] - adv_mid[i][j].item()) / adv_zero[i][j].item()
+                adv_norm = alpha * adv_norm
+                adv_data = adv_data + adv_norm
+        return adv_data
+    for _, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        # target selecting
+        # generate adversarial perturbation for 9 target
+        aux_targets = aux_targets_gen(target)
+        guided_loss = 0.0
+        for target_label in aux_targets:
+            # generate adversarial example
+            adv_data = adv_gen(model, data, target_label, attack=attack, epsilon=epsilon, alpha=0.033)
+
             guide_data, _ = guide_sample(guide_sets, target_label)
             guide_data = guide_data.to(device)
             
             guided_loss = F.mse_loss(adv_data, guide_data) + guided_loss
+            break
 
         train_loss = F.nll_loss(output, target)
         loss = (1-beta)*train_loss + beta*guided_loss

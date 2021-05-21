@@ -20,6 +20,8 @@ from defenses.adversarial_train import adv_train, adv_guide_train, adv_guide_pgd
 
 import copy
 
+import time
+
 from models.cnn import CNN
 from models.cnn_leaky_relu import CNNLeakyReLU
 
@@ -359,7 +361,16 @@ def test(model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
+def func_timer(f):
+    def wrapper(*args, **kwargs):
+        t_start = time.time()
+        result = f(*args, **kwargs)
+        t_end = time.time()
+        print("Run time: {:.6f} s.".format(t_end - t_start))
+        return result
+    return wrapper
 
+@func_timer
 def model_training(args, model, train_method, device, test_loader, scheduler):
     for epoch in range(1, args.epochs + 1):
         train_method.train(epoch)
@@ -565,7 +576,7 @@ def main():
     # evaluation(args, model, device, test_loader)
 
 
-    print("\nAdversarial guided training:")
+    print("\nAdversarial guided training (FGSM):")
     if args.load_model:
         model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     else:
@@ -586,6 +597,30 @@ def main():
         if args.save_model:
             torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
     evaluation(args, model, device, test_loader)
+    
+
+    # print("\nAdversarial guided training (PGD):")
+    # if args.load_model:
+    #     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
+    # else:
+    #     model.load_state_dict(start_point)
+    #     optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+    #     guide_sets = make_guide_set(train_set, size=1000)
+    #     adv_guided_method = AdversarialGuidedTrain(model, 
+    #                             device, 
+    #                             train_loader, 
+    #                             optimizer, 
+    #                             guide_sets=guide_sets, 
+    #                             epsilon=args.eps, 
+    #                             beta=args.beta, 
+    #                             weight_decay=args.weight_decay, 
+    #                             gradient_decay=args.gradient_decay, 
+    #                             attack='pgd')
+    #     model_training(args, model, adv_guided_method, device, test_loader, scheduler)
+    #     if args.save_model:
+    #         torch.save(model.state_dict(), "mnist_cnn_adv_guided.pt")
+    # evaluation(args, model, device, test_loader)
     
     
     # print("\nAdversarial guided training + Adversarial training (PGD)")
