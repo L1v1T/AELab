@@ -65,7 +65,7 @@ def main():
     x, y = test_loader[0]
     x = x.to(device).split(8)[0]
     y = y.to(device).split(8)[0]
-    x_t, y_t = test_loader[1]
+    x_t, y_t = test_loader[3]
     x_t = x_t.to(device).split(8)[0]
     y_t = y_t.to(device).split(8)[0]
 
@@ -84,8 +84,8 @@ def main():
     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     adv_saliency_evaluate(model, device, x, y, x_t, y_t, fgsm, "fgsm-agt")
 
-    model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
-    adv_saliency_evaluate(model, device, x, y, x_t, y_t, fgsm, "fgsm-agt-pgd")
+    # model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
+    # adv_saliency_evaluate(model, device, x, y, x_t, y_t, fgsm, "fgsm-agt-pgd")
 
 
 
@@ -103,8 +103,8 @@ def main():
     model.load_state_dict(torch.load("mnist_cnn_adv_guided.pt"))
     adv_saliency_evaluate(model, device, x, y, x_t, y_t, pgd, "pgd-agt")
 
-    model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
-    adv_saliency_evaluate(model, device, x, y, x_t, y_t, pgd, "pgd-agt-pgd")
+    # model.load_state_dict(torch.load("mnist_cnn_adv_guided_pgd.pt"))
+    # adv_saliency_evaluate(model, device, x, y, x_t, y_t, pgd, "pgd-agt-pgd")
     # intprtr = GRAD(model).to(device)
     # x, y = test_loader[0]
     # x = x.to(device).split(8)[0]
